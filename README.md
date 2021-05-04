@@ -16,10 +16,11 @@ Proceed with tests
 * [x] Enable creation of structure from .rif file  
 * [ ] Enable multiple operations
 	* [x] Add file to rifList
-	* [ ] Delete file from rifList
-	* [ ] Change status of a file manually
-	* [ ] Update file timestamp according to file's lastmodified time
+	* [x] Add references to a file
+	* [x] Delete file from rifList
+	* [x] Change status of a file manually
 	* [ ] Update file's status according to references' corelation
+		* [ ] Construct file corelation tree
 * [ ] Make cli interface
 	* [ ] Add file: Add file into .rif file
 	* [ ] Sanity check: Whether file exists or not 
@@ -27,3 +28,4 @@ Proceed with tests
 	* [ ] Discard: Discard change and only timestamp without affecting references.
 	* [ ] List: List .rif file contents into standard out descriptor
 	* [ ] Get as json: List but as json format
+* [ ] Create vs code extension to integrate rif to any other projects.
