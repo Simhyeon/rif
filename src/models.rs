@@ -8,13 +8,13 @@ pub enum RifError {
     AddFail(String),
     RemFail(String),
     GetFail(String),
-    IOERROR(std::io::Error),
-    ExtError(String),
+    IoError(std::io::Error),
+    CheckerError(String),
 }
 
 impl From<std::io::Error> for RifError {
     fn from(err : std::io::Error) -> Self {
-        Self::IOERROR(err)
+        Self::IoError(err)
     }
 }
 
@@ -29,9 +29,9 @@ impl RifList {
         if file_path.exists() {
             let file_name = 
                 file_path.file_name()
-                .ok_or(RifError::ExtError("Failed to get file name from path".to_owned()))?
+                .ok_or(RifError::AddFail("Failed to get file name from path".to_owned()))?
                 .to_str()
-                .ok_or(RifError::ExtError("Failed to convert file name into string".to_owned()))?
+                .ok_or(RifError::AddFail("Failed to convert file name into string".to_owned()))?
                 .to_owned();
             self.files.insert(file_path.clone(), SingleFile::new(file_name));
         } else {
