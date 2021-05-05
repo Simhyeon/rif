@@ -2,6 +2,7 @@ mod models;
 mod process;
 mod test;
 mod utils;
+mod checker;
 
 use std::path::{PathBuf};
 use models::{RifList, RifError, FileStatus};
