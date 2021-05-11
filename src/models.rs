@@ -57,7 +57,7 @@ impl RifList {
 
     pub fn add_reference(&mut self, file_path: &PathBuf, ref_file: &PathBuf) -> Result<(), RifError> {
         if let Some(file) = self.files.get_mut(file_path) {
-            file.references.push(ref_file.to_str().ok_or(RifError::GetFail("Invalid file name".to_owned()))?.to_owned());
+            file.references.push(ref_file.clone());
             return Ok(());
         } else {
             return Err(RifError::GetFail("Failed to set status of a file : Non existant.".to_owned()));
@@ -84,10 +84,10 @@ impl RifList {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SingleFile {
     name: String,
-    status: FileStatus,
+    pub status: FileStatus,
     // Important - This is a unix time represented as naive date time
     timestamp: NaiveDateTime,
-    references: Vec<String>,
+    pub references: Vec<PathBuf>,
 }
 
 impl SingleFile {
