@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use std::collections::HashMap;
-use crate::models::RifError;
+use crate::models::{RifError, FileStatus, RifList, SingleFile};
 
 pub const DEFAULT_LEVEL: i32 = 0;
 
@@ -39,7 +39,16 @@ impl Checker {
             sorted: vec![],
         }
     }
-    // TODO : Incomplete
+
+    pub fn add_rif_list(&mut self, rif_list: &RifList) -> Result<(), RifError> {
+
+        for tuple in rif_list.files.iter() {
+            self.add_node(tuple.0, &tuple.1.references)?;
+        }
+
+        Ok(())
+    }
+
     // Add node 
     pub fn add_node(&mut self, path: &PathBuf, children: &Vec<PathBuf>) -> Result<(), RifError> {
         // Boolean whehter the node should be created or not.
@@ -64,54 +73,94 @@ impl Checker {
         target_node.level = highest_node_level + 1;
         self.node_map.insert(path.clone(), target_node);
 
-        if is_node_new {
-            // Diversion tree
-            // All reference nodes exists
-            if self.existing.len() == children.len() {
-                // Do nothing. At least for now
+        // All references exit
+        if self.existing.len() == children.len() {
+            // Do nothing. At least for now
+        }
+        // No reference node exits
+        else if self.non_existing.len() == children.len() {
+            for item in children.iter() {
+                // Create child node and set necessary variables
+                let mut child_node = Node::new(item);
+                child_node.parent = Some(path.clone());
+                child_node.level = highest_node_level;
+                // Insert child node into hashmap
+                self.node_map.insert(item.clone(), child_node);
             }
-            // No reference node exits
-            else if self.non_existing.len() == children.len() {
-                for item in children.iter() {
-                    // Create child node and set necessary variables
-                    let mut child_node = Node::new(item);
-                    child_node.parent = Some(path.clone());
-                    child_node.level = highest_node_level;
-                    // Insert child node into hashmap
-                    self.node_map.insert(item.clone(), child_node);
-                }
+        }
+        // Some reference node exists
+        else {
+            // Create non-existing nodes
+            for item in self.non_existing.iter() {
+                // Create child node and set necessary variables
+                let mut child_node = Node::new(item);
+                child_node.parent = Some(path.clone());
+                child_node.level = highest_node_level;
+                // Insert child node into hashmap
+                self.node_map.insert(item.clone(), child_node);
             }
-            // Some reference node exists
-            else {
-                // Recursively increase a value
-                for item in self.non_existing.iter() {
-                    // Create child node and set necessary variables
-                    let mut child_node = Node::new(item);
-                    child_node.parent = Some(path.clone());
-                    child_node.level = highest_node_level;
-                    // Insert child node into hashmap
-                    self.node_map.insert(item.clone(), child_node);
-                }
 
-                self.recursive_increase(path)?;
-            }
-        } else {
-
+            // Recursively increase a value by 1
+            self.recursive_increase(path)?;
         }
 
         Ok(())
     }
 
-    pub fn check(&mut self) -> Result<(), RifError> {
+    pub fn check(&mut self, rif_list: &mut RifList) -> Result<(), RifError> {
         // 1. Sort lists
         // 2. and compare children's references
         // 3. Also check filestamp 
         let sorted = self.get_sorted_vec();
+
+        for item_key in sorted.iter() {
+            // New file status that will be set to the 'item'
+            // Default status is fresh so that file is automatically fresh
+            // when there are no references.
+            let mut status = FileStatus::Fresh;
+
+            // Item is a node retrieved with item_key
+            if let Some(item) = self.node_map.get(item_key) {
+
+                // item_ref_keys are vector of keys which parent is the 'item'
+                let item_ref_keys = &self.node_map.get(&item.path).unwrap().children;
+
+                for key in item_ref_keys.iter() {
+                    // File node that is the child of node 'item'
+                    if let Some(file) = rif_list.files.get(key) {
+                        // Made status public for debugging
+                        if let FileStatus::Stale = file.status {
+                            status = FileStatus::Stale;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // No node found from item_key
+                return Err(RifError::CheckerError(String::from("Failed to find item from key")));
+            }
+
+            // Set new status into rif_list
+            if let Some(file) = rif_list.files.get_mut(item_key) {
+                file.status = status;
+            } else {
+                return Err(RifError::CheckerError(String::from("Failed to find item from rif list")));
+            }
+        }
+
         Ok(())
     }
 
-    pub fn get_sorted_vec(&mut self) -> Vec<PathBuf> {
-        vec![]
+    // This vector returns keys array
+    pub fn get_sorted_vec(&self) -> Vec<PathBuf> {
+        let mut new_vec: Vec<(PathBuf, Node)> 
+            = self.node_map.clone().into_iter().collect();
+
+        new_vec.sort_by(|a, b| b.1.level.cmp(&a.1.level));
+
+        let mut vec = vec![];
+        for tuple in new_vec { vec.push(tuple.0); }
+        vec
     }
 
     pub fn get_highest_node_level(&self, children : &Vec<PathBuf>) -> Result<i32, RifError> {
@@ -146,6 +195,22 @@ impl Checker {
 
     pub fn recursive_increase(&mut self, path: &PathBuf) -> Result<(), RifError> {
         // Recursively increase the level from path to top level
+        // Base case
+        self.node_map.get_mut(path).unwrap().level += 1;
+
+        // Current node position
+        let mut target_path = path.clone();
+        loop {
+            // Get parent if possible
+            if let Some(parent_path) = self.node_map.get(&target_path).unwrap().parent.clone() {
+                self.node_map.get_mut(&parent_path).unwrap().level += 1;
+                target_path = parent_path;
+            } 
+            // If there is no parent, break from loop
+            else {
+                break;
+            }
+        }
         Ok(())
     }
 }
