@@ -57,8 +57,13 @@ Proceed with tests
 	* [x] Add references to a file
 	* [x] Delete file from rifList
 	* [x] Change status of a file manually
-	* [ ] Update file's status according to references' corelation
-		* [ ] Construct file corelation tree
+	* [x] Update file's status according to references' corelation
+		* [x] Construct file corelation tree
+		Currently this looks good but not so sure 
+		* [ ] Should check sanity on every opeartion.
+		No direct self referencing
+		No indirect self referencing
+	* [ ] Save updated rif list into file
 * [ ] Make cli interface
 	* [ ] Add file: Add file into .rif file
 	* [ ] Sanity check: Whether file exists or not 

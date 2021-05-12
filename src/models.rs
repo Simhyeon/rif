@@ -74,9 +74,10 @@ impl RifList {
     }
 
     // TODO 
-    // This should consruct file corelation tree
-    // And find out if file is stale or fresh(or say up-to-date)
-    pub fn update_file_statuses(&mut self) -> Result<(), RifError> {
+    fn sanity_check(&self) -> Result<(), RifError> {
+        for file in self.files.iter() {
+            
+        }
         Ok(())
     }
 }
@@ -86,7 +87,7 @@ pub struct SingleFile {
     name: String,
     pub status: FileStatus,
     // Important - This is a unix time represented as naive date time
-    timestamp: NaiveDateTime,
+    pub timestamp: NaiveDateTime,
     pub references: Vec<PathBuf>,
 }
 
