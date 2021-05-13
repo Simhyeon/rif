@@ -115,12 +115,10 @@ impl Checker {
 
     // Check methods modify rif list and yield result
     pub fn check(&mut self, rif_list: &mut RifList) -> Result<(), RifError> {
-        println!("LOG ::: Check start");
         // 1. Sort lists
         // 2. and compare children's references
         // 3. Also check filestamp 
         let sorted = self.get_sorted_vec();
-        println!("LOG ::: Sorted vector is \n{:#?}", sorted);
 
         for target_key in sorted.iter() {
             // New file status that will be set to the 'item'
@@ -133,8 +131,6 @@ impl Checker {
 
                 // item_ref_keys are vector of keys which parent is the 'item'
                 let target_ref_keys = &self.node_map.get(&target_node.path).unwrap().children;
-                println!("LOG ::: Target node : {:?}", target_node);
-                println!("LOG ::: target ref keys are \n{:#?}", target_ref_keys);
 
                 for key in target_ref_keys.iter() {
                     // Child single_File that is the child of node 'item'
@@ -143,13 +139,11 @@ impl Checker {
                         // If child is stale, then parent is automatically stale
                         if let FileStatus::Stale = child_file.status {
                             status = FileStatus::Stale;
-                            println!("LOG ::: Stale by child stale");
                             break;
                         }
                         // If child is fresh but fresher than parent, then parent is stale
                         if child_file.timestamp > rif_list.files.get(target_key).unwrap().timestamp {
                             status = FileStatus::Stale;
-                            println!("LOG ::: Stale by fresher child");
                             break;
                         }
                     }
