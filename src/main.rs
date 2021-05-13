@@ -3,6 +3,7 @@ mod fileio;
 mod test;
 mod utils;
 mod checker;
+mod cli;
 
 use std::path::{PathBuf};
 use models::{RifList, RifError, FileStatus};
