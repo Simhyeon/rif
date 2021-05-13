@@ -1,5 +1,5 @@
 mod models;
-mod process;
+mod fileio;
 mod test;
 mod utils;
 mod checker;
@@ -7,24 +7,21 @@ mod checker;
 use std::path::{PathBuf};
 use models::{RifList, RifError, FileStatus};
 use checker::Checker;
-use process::Reader;
+use fileio::FileIO;
 
 fn main() -> Result<(), RifError> {
 
-    let mut rif_list = Reader::read(
+    let mut rif_list = FileIO::read(
         PathBuf::from("test/test.json")
     )?;
-
-    //let path = PathBuf::from("test/new.md");
-    //rif_list.add_file(&path)?;
-    //rif_list.add_reference(&path, &PathBuf::from("test/test.json"))?;
     
+    //let mut checker = Checker::new();
+    //checker.add_rif_list(&rif_list)?;
+    //checker.check(&mut rif_list)?;
+
     //println!("{:#?}", rif_list);
-    let mut checker = Checker::new();
-    checker.add_rif_list(&rif_list)?;
-    checker.check(&mut rif_list)?;
-    println!("LOG ::: Checking ");
-    println!("{:#?}", rif_list);
+    
+    //FileIO::save(PathBuf::from("test/test_new.json"), rif_list)?;
 
     Ok(())
 }
