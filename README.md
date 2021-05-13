@@ -52,7 +52,7 @@ Proceed with tests
 
 * [x] Create desired format of toml file
 * [x] Enable creation of structure from .rif file  
-* [ ] Enable multiple operations
+* [x] Enable multiple operations
 	* [x] Add file to rifList
 	* [x] Add references to a file
 	* [x] Delete file from rifList
@@ -60,11 +60,10 @@ Proceed with tests
 	* [x] Update file's status according to references' corelation
 		* [x] Construct file corelation tree
 		Currently this looks good but not so sure 
-		* [ ] Should check sanity on every opeartion.
-		No direct self referencing
-		No indirect self referencing
-	* [ ] Save updated rif list into file
+		* [x] Should check sanity on every opeartion.
+	* [x] Save updated rif list into file
 * [ ] Make cli interface
+	* [ ] Add clap integration
 	* [ ] Add file: Add file into .rif file
 	* [ ] Sanity check: Whether file exists or not 
 	* [ ] Update: Update file time check references
