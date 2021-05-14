@@ -62,12 +62,21 @@ Proceed with tests
 		Currently this looks good but not so sure 
 		* [x] Should check sanity on every opeartion.
 	* [x] Save updated rif list into file
+* [ ] Enable tracking of files
+	* [x] Draft
+	* [ ] Test
 * [ ] Make cli interface
-	* [ ] Add clap integration
+	* [] Enable clap integration
+		* [ ] Parse sub commands
+     <!-- Add, Check, Discard, List, New, Remove, SanityCheck, Update, Set -->
 	* [ ] Add file: Add file into .rif file
-	* [ ] Sanity check: Whether file exists or not 
-	* [ ] Update: Update file time check references
+	* [ ] Check: check file references with rif file in cwd.
 	* [ ] Discard: Discard change and only timestamp without affecting references.
 	* [ ] List: List .rif file contents into standard out descriptor
+	* [ ] New: create new rif and rif_time files in current working directory(cwd).
+	* [ ] Remove : remove file from .rif file
+	* [ ] Sanity check: Whether file exists or not 
+	* [ ] Update: Update file time check references
+	* [ ] Set: Set file's references
 	* [ ] Get as json: List but as json format
 * [ ] Create vs code extension to integrate rif to any other projects.
