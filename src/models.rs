@@ -1,7 +1,8 @@
 use std::path::{ PathBuf , Path};
 use std::collections::HashMap;
 use serde::{ Serialize, Deserialize };
-use chrono::{NaiveDateTime, NaiveDate, NaiveTime};
+use chrono::{NaiveDateTime, Utc};
+use crate::utils;
 
 #[derive(Debug)]
 pub enum RifError {
@@ -34,6 +35,11 @@ pub struct RifList {
 }
 
 impl RifList {
+    pub fn new() -> Self {
+        Self {  
+            files: HashMap::new(),
+        }
+    }
     pub fn add_file(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
         // If file exists then executes.
         if file_path.exists() {
@@ -63,6 +69,18 @@ impl RifList {
         // DEBUG 
         println!("{:#?}", self.files);
 
+        Ok(())
+    }
+    pub fn update_filestamp(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
+        if file_path.exists() {
+            if let Some(file) = self.files.get_mut(file_path) {
+                file.timestamp = utils::get_current_unix_time(); 
+            } else {
+                return Err(RifError::GetFail(String::from("Failed to get file from rif_list")));
+            }
+        } else {
+            return Err(RifError::GetFail(String::from("File doesn't exist")));
+        }
         Ok(())
     }
 
@@ -173,11 +191,7 @@ impl SingleFile {
         Self {  
             name,
             status: FileStatus::Fresh,
-            timestamp: 
-                NaiveDateTime::new(
-                    NaiveDate::from_ymd(2020, 5, 6), 
-                    NaiveTime::from_hms(1, 2, 34)
-                ),
+            timestamp: utils::get_current_unix_time(),
             references: vec![]
         }
     }
