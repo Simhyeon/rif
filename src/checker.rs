@@ -161,6 +161,7 @@ impl Checker {
             }
         }
 
+        println!("Successfully checked file references");
         Ok(())
     }
 
