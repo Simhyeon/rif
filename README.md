@@ -61,22 +61,30 @@ Proceed with tests
 		* [x] Construct file corelation tree
 		Currently this looks good but not so sure 
 		* [x] Should check sanity on every opeartion.
+		* [x] Sanity check should also check file existences
 	* [x] Save updated rif list into file
+	* [ ] Sanity check with auto fix option
+	* [ ] Remove must delete all occurences not only just a singlefile
+	Because finding all file references and fixing is stupid I guess?
+	This should be made sanity_check_with_fix  method
 * [ ] Enable tracking of files
 	* [x] Draft
 	* [ ] Test
 * [ ] Make cli interface
-	* [] Enable clap integration
+	* [ ] Enable clap integration
 		* [ ] Parse sub commands
      <!-- Add, Check, Discard, List, New, Remove, SanityCheck, Update, Set -->
-	* [ ] Add file: Add file into .rif file
-	* [ ] Check: check file references with rif file in cwd.
+	* [x] Add file: Add file into .rif file
+	* [x] Check: check file references with rif file in cwd.
 	* [ ] Discard: Discard change and only timestamp without affecting references.
 	* [ ] List: List .rif file contents into standard out descriptor
-	* [ ] New: create new rif and rif_time files in current working directory(cwd).
+	* [x] New: create new rif and rif_time files in current working directory(cwd).
 	* [ ] Remove : remove file from .rif file
-	* [ ] Sanity check: Whether file exists or not 
+	* [x] Sanity check: Whether file exists or not 
 	* [ ] Update: Update file time check references
 	* [ ] Set: Set file's references
 	* [ ] Get as json: List but as json format
-* [ ] Create vs code extension to integrate rif to any other projects.
+* [ ] Improve error handling ergonomics
+	* [ ] Make error result more understandable
+	* [ ] Make error print logging pretty to read 
+* [ ] Create vs code extension.
