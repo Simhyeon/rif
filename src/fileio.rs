@@ -15,7 +15,7 @@ impl FileIO {
     }
     // Same method but gets str
     pub fn read_with_str(file_name: &str) -> Result<RifList, RifError> {
-        let rif_list: RifList = serde_json::from_str(file_name)?;
+        let rif_list: RifList = serde_json::from_str(&std::fs::read_to_string(file_name)?)?;
         rif_list.sanity_check()?;
 
         println!("Successfully read file");
