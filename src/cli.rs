@@ -7,12 +7,37 @@ use crate::consts::*;
 
 pub struct Cli{}
 
+// REFACTOR :::
+// Make subcommand parse into a function 
+// and the function include multiple subcommand_name functions
+// No need for enum
+
 impl Cli {
     pub fn parse() -> Result<(), RifError>{
-        // TODO ::: Currently testing and learning clap
-        let mut action = CliAction::None;
 
-        let cli_args = clap_app!(myapp =>
+        let cli_args = Cli::args_builder();
+        Cli::parse_subcommands(&cli_args)?;
+
+        Ok(())
+    //end Parse
+    }
+
+    fn parse_subcommands(args: &clap::ArgMatches) -> Result<(), RifError> {
+        Cli::subcommand_add(args)?;
+        Cli::subcommand_remove(args)?;
+        Cli::subcommand_set(args)?;
+        Cli::subcommand_update(args)?;
+        Cli::subcommand_discard(args)?;
+        Cli::subcommand_list(args)?;
+        Cli::subcommand_check(args)?;
+        Cli::subcommand_new(args)?;
+        Cli::subcommand_sanity(args)?;
+
+        Ok(())
+    }
+
+    fn args_builder() -> clap::ArgMatches {
+        clap_app!(myapp =>
             (version: "0.0.1")
             (author: "Simon Creek <simoncreek@tutanota.com>")
             (about: "Manipulate rif file")
@@ -20,6 +45,7 @@ impl Cli {
                 (about: "Add file to rif")
                 (@arg FILE: +required "File to add")
             )
+            // TODO ::: Considiering adding short version of remove which is "rm"
             (@subcommand remove =>
                 (about: "Remove file from rif")
                 (@arg FILE: +required "File to remove")
@@ -39,7 +65,6 @@ impl Cli {
             )
             (@subcommand check =>
                 (about: "Check file references")
-                (@arg RIF: +required "Rif file to check references")
             )
             (@subcommand sanity =>
                 (about: "Check sanity of rif file")
@@ -51,104 +76,96 @@ impl Cli {
                 (about: "Diplay all files from rif file")
                 (@arg RIF: +required "rif file to check sanity")
             )
-        ).get_matches();
-
-
-        // TODO 
-        // This need changes because all of this commands are all subcommands and should
-        // utilize subcommand_matches
-        // Add, Check, Discard, List, New, Remove, SanityCheck, Update, Set
-        if let Some(file) = cli_args.value_of("add") {
-            println!("Add");
-            // action = CliAction::Add(PathBuf::from(file));
-        } else if cli_args.is_present("CHECK") {
-            println!("Check");
-            //action = CliAction::Check;
-        } else if let Some(file) = cli_args.value_of("DISCARD") {
-            action = CliAction::Discard(PathBuf::from(file));
-        } else if cli_args.is_present("LIST") {
-            action = CliAction::List;
-        } else if cli_args.is_present("NEW") {
-            action = CliAction::New;
-        } else if let Some(file) = cli_args.value_of("REMOVE") {
-            action = CliAction::Remove(PathBuf::from(file));
-        } else if cli_args.is_present("SANITY") {
-            action = CliAction::SanityCheck;
-        } else if let Some(file) = cli_args.value_of("UPDATE") {
-            action = CliAction::Update(PathBuf::from(file));
-        } 
-        // Not yet
-        //else if let Some(file) = cli_args.value_of("SET") {
-            //action = CliAction::Set(PathBuf::from(file));
-        //}
-
-        match action {
-            CliAction::Add(file) => {
-                let mut rif_list = FileIO::read_with_str(RIF_LIST_NAME)?;
-                rif_list.add_file(&file)?;
-                FileIO::save(&file, rif_list)?;
-            },
-            CliAction::Check => {
-                let mut rif_list = FileIO::read_with_str(RIF_LIST_NAME)?;
-                let mut checker = Checker::new();
-                checker.add_rif_list(&rif_list)?;
-                checker.check(&mut rif_list)?;
-                FileIO::save_with_str(RIF_LIST_NAME, rif_list)?;
-            },
-            CliAction::Discard(file) => {
-                // TODO 
-                // This should be done
-            },
-            CliAction::List => {
-                // TODO
-                // This should be also done
-                // Create new display method
-            },
-            CliAction::Remove(file) => {
-                let mut rif_list = FileIO::read_with_str(RIF_LIST_NAME)?;
-                rif_list.remove_file(&file)?;
-                FileIO::save(&file, rif_list)?;
-            },
-            CliAction::SanityCheck => {
-                let rif_list = FileIO::read_with_str(RIF_LIST_NAME)?;
-                rif_list.sanity_check()?;
-            },
-            CliAction::New => {
-                let new_rif_list = RifList::new();
-                println!("Current working diretory joined with file name is \n{:#?}", 
-                        std::env::current_dir()?.join(PathBuf::from(RIF_LIST_NAME)));
-                FileIO::save(
-                    &std::env::current_dir()?.join(PathBuf::from(RIF_LIST_NAME)), 
-                    new_rif_list
-                    )?;
-                crate::tracker::Tracker::save_new_file()?;
-            }
-            CliAction::Update(file) => {
-                let mut rif_list = FileIO::read_with_str(RIF_LIST_NAME)?;
-                rif_list.update_filestamp(&file)?;
-            }
-            // TODO set references references action enum might be helpful
-            // Because reference can be added or deleted rather than reallocated 
-            CliAction::Set(file, refs) => {
-                ();
-            }
-            CliAction::None => () // Do nothing if no subcommand was given.
-        }
-
-        Ok(())
-    //end Parse
+        ).get_matches()
     }
-}
 
-pub enum CliAction {
-    None,
-    Add(PathBuf),
-    Check,
-    Discard(PathBuf),
-    List,
-    New,
-    Remove(PathBuf),
-    SanityCheck,
-    Update(PathBuf),
-    Set(PathBuf, Vec<PathBuf>),
+    fn subcommand_add(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        if let Some(sub_match) = matches.subcommand_matches("add") {
+            if let Some(file) = sub_match.value_of("FILE") {
+                let mut rif_list = FileIO::read_with_str(RIF_LIST_NAME)?;
+                rif_list.add_file(&PathBuf::from(file))?;
+                FileIO::save_with_str(RIF_LIST_NAME, rif_list)?;
+            } 
+        } 
+        Ok(())
+    }
+
+    fn subcommand_remove(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        if let Some(sub_match) = matches.subcommand_matches("remove") {
+            if let Some(file) = sub_match.value_of("FILE") {
+                let mut rif_list = FileIO::read_with_str(RIF_LIST_NAME)?;
+                // TODO :: Remove file should be applied to file references
+                // Including file itself and also references.
+                // rif_list.remove_file(file)?;
+                FileIO::save_with_str(RIF_LIST_NAME, rif_list)?;
+            } 
+        } 
+        Ok(())
+    }
+
+    fn subcommand_set(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        if let Some(_sub_match) = matches.subcommand_matches("set") {
+            //if let Some(file) = sub_match.value_of("FILE") {
+                //return CliAction::Remove(PathBuf::from(file));
+            //} 
+        } 
+        Ok(())
+    }
+
+    fn subcommand_update(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        if let Some(sub_match) = matches.subcommand_matches("update") {
+            if let Some(file) = sub_match.value_of("FILE") {
+
+                let mut rif_list = FileIO::read_with_str(RIF_LIST_NAME)?;
+                rif_list.update_filestamp(&PathBuf::from(file))?;
+            } 
+        } 
+        Ok(())
+    }
+
+    fn subcommand_discard(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        if let Some(sub_match) = matches.subcommand_matches("discard") {
+            if let Some(file) = sub_match.value_of("FILE") {
+                //return CliAction::Discard(PathBuf::from(file));
+            } 
+        } 
+        Ok(())
+    }
+
+    fn subcommand_list(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        if let Some(_sub_match) = matches.subcommand_matches("update") {
+            //return CliAction::List;
+        } 
+        Ok(())
+    }
+
+    fn subcommand_check(matches: &clap::ArgMatches) -> Result<(), RifError> {
+        if let Some(_sub_match) = matches.subcommand_matches("check") {
+            let mut rif_list = FileIO::read_with_str(RIF_LIST_NAME)?;
+            let mut checker = Checker::new();
+            checker.add_rif_list(&rif_list)?;
+            checker.check(&mut rif_list)?;
+            FileIO::save_with_str(RIF_LIST_NAME, rif_list)?;
+        } 
+        Ok(())
+    }
+
+    fn subcommand_new(matches: &clap::ArgMatches) -> Result<(), RifError> {
+        if let Some(_sub_match) = matches.subcommand_matches("new") {
+            let new_rif_list = RifList::new();
+            FileIO::save(&std::env::current_dir()?.join(PathBuf::from(RIF_LIST_NAME)), new_rif_list)?;
+            crate::tracker::Tracker::save_new_file()?;
+        } 
+        Ok(())
+    }
+
+    fn subcommand_sanity(matches: &clap::ArgMatches) -> Result<(), RifError> {
+        if let Some(_sub_match) = matches.subcommand_matches("sanity") {
+            // NOTE ::: You don't have to manually call sanity check
+            // Because read operation always check file sanity after reading a file
+            // and return erros if sanity was not assured.
+            let rif_list = FileIO::read_with_str(RIF_LIST_NAME)?;
+        } 
+        Ok(())
+    }
 }
