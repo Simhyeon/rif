@@ -112,6 +112,7 @@ impl RifList {
         for path in self.files.keys() {
             self.sanity_check_file(path, SanityType::Indirect)?;
         }
+        println!("Successfully checked rif sanity");
         Ok(())
     }
 
@@ -124,6 +125,11 @@ impl RifList {
         // but direct checking is also needed to early return from easily detectable invalid case.
         // Thus there exists two types and indirect check also does direct checks
         
+        // Check if file exists in the first place
+        if !target_path.exists() {
+            return Err(RifError::GetFail(format!("File {:?} doesn't exist", target_path)));
+        }
+
         // Check direct self reference.
         let first_item = self.files.get(target_path).unwrap().references.iter().filter(|a| *a == target_path).next();
         // If the first exists, then target_path has same file in its reference
@@ -144,7 +150,7 @@ impl RifList {
             // Recursively check
             let mut ref_status = RefStatus::Valid;
             for child in self.files.get(target_path).unwrap().references.iter() {
-                self.recursive_check(target_path, child, &mut ref_status);
+                self.recursive_check(target_path, child, &mut ref_status)?;
             }
 
             if let RefStatus::Invalid = ref_status {
@@ -155,14 +161,22 @@ impl RifList {
         Ok(())
     }
 
-    fn recursive_check(&self, origin_path: &PathBuf, current_path: &PathBuf, ref_status: &mut RefStatus) {
+    fn recursive_check(&self, origin_path: &PathBuf, current_path: &PathBuf, ref_status: &mut RefStatus) -> Result<(), RifError> {
+
+        // if current path is not existent return erro
+        if !current_path.exists() {
+            return Err(RifError::GetFail(format!("File {:?} doesn't exist", current_path)));
+        }
+
         if origin_path == current_path {
             *ref_status = RefStatus::Invalid;
         } else if let RefStatus::Valid = ref_status {
             for child in self.files.get(current_path).unwrap().references.iter() {
-                self.recursive_check(origin_path, child, ref_status);
+                self.recursive_check(origin_path, child, ref_status)?;
             }
         }
+
+        Ok(())
     }
 }
 
