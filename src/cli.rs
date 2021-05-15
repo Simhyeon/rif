@@ -26,7 +26,7 @@ impl Cli {
 
     fn parse_subcommands(args: &clap::ArgMatches) -> Result<(), RifError> {
 
-        utils::check_rif_file()?;
+        Cli::subcommand_new(args)?;
 
         Cli::subcommand_add(args)?;
         Cli::subcommand_remove(args)?;
@@ -36,7 +36,6 @@ impl Cli {
         Cli::subcommand_discard(args)?;
         Cli::subcommand_list(args)?;
         Cli::subcommand_check(args)?;
-        Cli::subcommand_new(args)?;
         Cli::subcommand_sanity(args)?;
         Cli::subcommand_status(args)?;
 
@@ -99,6 +98,7 @@ impl Cli {
     }
 
     fn subcommand_add(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        utils::check_rif_file()?;
         if let Some(sub_match) = matches.subcommand_matches("add") {
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
@@ -111,6 +111,7 @@ impl Cli {
     }
 
     fn subcommand_remove(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        utils::check_rif_file()?;
         if let Some(sub_match) = matches.subcommand_matches("remove") {
             if let Some(file) = sub_match.value_of("FILE") {
                 if sub_match.is_present("") {
@@ -126,6 +127,7 @@ impl Cli {
     }
 
     fn subcommand_set(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        utils::check_rif_file()?;
         if let Some(sub_match) = matches.subcommand_matches("set") {
             if let Some(file) = sub_match.value_of("FILE") {
                 if let Some(refs) = sub_match.values_of("REFS") {
@@ -143,6 +145,7 @@ impl Cli {
     }
 
     fn subcommand_unset(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        utils::check_rif_file()?;
         if let Some(sub_match) = matches.subcommand_matches("unset") {
             if let Some(file) = sub_match.value_of("FILE") {
                 if let Some(refs) = sub_match.values_of("REFS") {
@@ -160,6 +163,7 @@ impl Cli {
     }
 
     fn subcommand_update(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        utils::check_rif_file()?;
         if let Some(sub_match) = matches.subcommand_matches("update") {
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
@@ -179,6 +183,7 @@ impl Cli {
 
     // Discard simply updates filestamp in rif time without updating filestamp in rif file
     fn subcommand_discard(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        utils::check_rif_file()?;
         if let Some(sub_match) = matches.subcommand_matches("discard") {
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
@@ -191,6 +196,7 @@ impl Cli {
     }
 
     fn subcommand_list(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        utils::check_rif_file()?;
         if let Some(_sub_match) = matches.subcommand_matches("list") {
             let rif_list = FileIO::read_with_str(RIF_LIST_FILE)?;
             println!("\n{:#?}", rif_list);
@@ -199,6 +205,7 @@ impl Cli {
     }
 
     fn subcommand_check(matches: &clap::ArgMatches) -> Result<(), RifError> {
+        utils::check_rif_file()?;
         if let Some(sub_match) = matches.subcommand_matches("check") {
             let mut rif_list = FileIO::read_with_str(RIF_LIST_FILE)?;
 
@@ -218,6 +225,7 @@ impl Cli {
     }
 
     fn subcommand_new(matches: &clap::ArgMatches) -> Result<(), RifError> {
+        utils::check_rif_file()?;
         if let Some(_sub_match) = matches.subcommand_matches("new") {
             let new_rif_list = RifList::new();
             FileIO::save(&std::env::current_dir()?.join(PathBuf::from(RIF_LIST_FILE)), new_rif_list)?;
@@ -226,6 +234,7 @@ impl Cli {
     }
 
     fn subcommand_sanity(matches: &clap::ArgMatches) -> Result<(), RifError> {
+        utils::check_rif_file()?;
         if let Some(sub_match) = matches.subcommand_matches("sanity") {
             // NOTE ::: You don't have to manually call sanity check
             // Because read operation always check file sanity after reading a file
@@ -244,6 +253,7 @@ impl Cli {
     }
 
     fn subcommand_status(matches: &clap::ArgMatches) -> Result<(), RifError> {
+        utils::check_rif_file()?;
         if let Some(_sub_match) = matches.subcommand_matches("status") {
             let rif_list = FileIO::read_with_str(RIF_LIST_FILE)?;
             rif_list.track_files()?;
