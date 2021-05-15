@@ -1,6 +1,6 @@
 use std::path::PathBuf;
-use std::collections::HashMap;
-use crate::models::{RifError, FileStatus, RifList, SingleFile};
+use std::collections::{HashMap, HashSet};
+use crate::models::{RifError, FileStatus, RifList};
 
 pub const DEFAULT_LEVEL: i32 = 0;
 
@@ -9,7 +9,7 @@ struct Node {
     path: PathBuf,
     level: i32,
     parent: Option<PathBuf>,
-    children: Vec<PathBuf>,
+    children: HashSet<PathBuf>,
 }
 
 impl Node {
@@ -18,25 +18,24 @@ impl Node {
             path: path.clone(),
             level: DEFAULT_LEVEL,
             parent: None,
-            children: vec![]
+            children: HashSet::new()
         }
     }
 }
 
 pub struct Checker {
     node_map: HashMap<PathBuf, Node>,
-    existing: Vec<PathBuf>,
-    non_existing: Vec<PathBuf>,
-    sorted: Vec<PathBuf>,
+    existing: HashSet<PathBuf>,
+    non_existing: HashSet<PathBuf>,
+    //sorted: Vec<PathBuf>, // Commented because it isnot used
 }
 
 impl Checker {
     pub fn new() -> Self {
         Self {  
             node_map: HashMap::new(),
-            existing: vec![],
-            non_existing: vec![],
-            sorted: vec![],
+            existing: HashSet::new(),
+            non_existing: HashSet::new(),
         }
     }
 
@@ -55,16 +54,13 @@ impl Checker {
     }
 
     // Add node 
-    fn add_node(&mut self, path: &PathBuf, children: &Vec<PathBuf>) -> Result<(), RifError> {
-        // Boolean whehter the node should be created or not.
-        let is_node_new = self.node_map.contains_key(path);
-
+    fn add_node(&mut self, path: &PathBuf, children: &HashSet<PathBuf>) -> Result<(), RifError> {
         // Update existing vector and non-existing vector 
         for child in children.iter() {
             if self.node_map.contains_key(child) {
-                self.existing.push(child.clone());
+                self.existing.insert(child.clone());
             } else {
-                self.non_existing.push(child.clone());
+                self.non_existing.insert(child.clone());
             }
         }
 
@@ -155,13 +151,17 @@ impl Checker {
 
             // Set new status into rif_list
             if let Some(file) = rif_list.files.get_mut(target_key) {
+                // Print status changes into stdout
+                if file.status != status {
+                    println!("Status update <{}> [{:#?}] -> [{:#?}]", target_key.display(), file.status, status);
+                }
                 file.status = status;
             } else {
                 return Err(RifError::CheckerError(String::from("Failed to find item from rif list")));
             }
         }
 
-        println!("Successfully checked file references");
+        //println!("Successfully checked file references");
         Ok(())
     }
 
@@ -177,8 +177,9 @@ impl Checker {
         vec
     }
 
-    fn get_highest_node_level(&self, children : &Vec<PathBuf>) -> Result<i32, RifError> {
+    fn get_highest_node_level(&self, children : &HashSet<PathBuf>) -> Result<i32, RifError> {
 
+        let children: Vec<&PathBuf> = children.iter().collect();
         // Early return if children's lenth is 0
         if children.len() == 0 {
             return Ok(DEFAULT_LEVEL);
@@ -186,7 +187,7 @@ impl Checker {
 
         // Set first children's level as a highest level for now.
         let mut highest = 
-            if let Some(value) = self.node_map.get(&children[0]) {
+            if let Some(value) = self.node_map.get(children[0]) {
                 value.level
             } else {
                 return Err(RifError::CheckerError(format!("Failed to get highest number from given children\n{:#?}", children)));
@@ -195,12 +196,12 @@ impl Checker {
         // Iterate through children and update a highest level
         // If higher number is found.
         for index in 1..children.len() {
-            if let Some(value) = self.node_map.get(&children[index]) {
+            if let Some(value) = self.node_map.get(children[index]) {
                 if highest < value.level {
                     highest = value.level;
                 }
             } else {
-                return Err(RifError::CheckerError(format!("Failed to get highest number from given children\nFrom tree:\n{:#?}\nItem:\n{:#?}", children, children[index])));
+                return Err(RifError::CheckerError(format!("Failed to get highest number from given children\nFrom tree:\n{:#?}\nItem:\n{}", children, children[index].display())));
             };
         }
 
