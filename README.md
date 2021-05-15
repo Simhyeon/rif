@@ -100,13 +100,21 @@ Checker checks currently selected file's timestamp and references and set a file
 
 ### Later
 
+Branch: new_status
 * [ ] Status to show untracked files list
 	* [ ] Use gitignore to add files blacklist
+
+Branch: Ergonomics
+* [ ] Color print logs for better readability
 * [ ] Enable ergonomics for cli because there are too much commands needed
 * [ ] Enable regex file arguments and multiple arguments
+
+Branch: Error handling
 * [ ] Improve error handling ergonomics
 	* [ ] Make error result more understandable
 	* [ ] Make error print logging pretty to read 
+
+Whole new othe projects
 * [ ] Create vs code extension.
 
 ### Bugs
