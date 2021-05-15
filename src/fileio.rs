@@ -10,7 +10,7 @@ impl FileIO {
         let rif_list: RifList = serde_json::from_str(&std::fs::read_to_string(file_name)?)?;
         rif_list.sanity_check()?;
 
-        println!("Successfully read file");
+        //println!("Successfully read file");
         Ok(rif_list)
     }
     // Same method but gets str
@@ -18,7 +18,15 @@ impl FileIO {
         let rif_list: RifList = serde_json::from_str(&std::fs::read_to_string(file_name)?)?;
         rif_list.sanity_check()?;
 
-        println!("Successfully read file");
+        //println!("Successfully read file");
+        Ok(rif_list)
+    }
+
+    // This method doesn't check sanity of file
+    pub fn read_with_str_as_raw(file_name: &str) -> Result<RifList, RifError> {
+        let rif_list: RifList = serde_json::from_str(&std::fs::read_to_string(file_name)?)?;
+
+        //println!("Successfully read file");
         Ok(rif_list)
     }
 
