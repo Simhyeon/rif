@@ -1,13 +1,15 @@
-use std::path::{ PathBuf , Path};
-use std::collections::HashMap;
-use serde::{ Serialize, Deserialize };
-use chrono::{NaiveDateTime, Utc};
+use std::path::PathBuf;
+use std::collections::{HashMap, HashSet};
+use serde::{Serialize, Deserialize};
+use chrono::NaiveDateTime;
+use itertools::Itertools;
 use crate::utils;
 
 #[derive(Debug)]
 pub enum RifError {
     AddFail(String),
     RemFail(String),
+    Ext(String),
     GetFail(String),
     InvalidFormat(String),
     IoError(std::io::Error),
@@ -34,6 +36,33 @@ pub struct RifList {
     pub files: HashMap<PathBuf, SingleFile>,
 }
 
+impl std::fmt::Display for RifList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut output = String::new();
+        for path in self.files.keys().sorted() {
+            let single_file = self.files.get(path).unwrap();
+            let current_time = single_file.timestamp;
+            let mut file_output = String::new();
+            file_output.push_str(
+                &format!("<{}> - {{{:?}}}\n", path.display(), single_file.status)
+            );
+            if single_file.references.len() != 0 {
+                file_output.push_str( &format!("[refs]\n"));
+            }
+            for ref_item in single_file.references.iter() {
+                file_output.push_str(&format!("    |- <{}>", ref_item.display()));
+                if current_time < self.files.get(ref_item).unwrap().timestamp {
+                    file_output.push_str(&format!(" {{Updated}}"));
+                }
+                file_output.push_str("\n");
+            }
+            output.push_str(&format!("{}\n", file_output));
+        }
+        write!(f, "{}", output)
+    }
+}
+
+
 impl RifList {
     pub fn new() -> Self {
         Self {  
@@ -43,6 +72,8 @@ impl RifList {
     pub fn add_file(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
         // If file exists then executes.
         if file_path.exists() {
+            // TODO check this logic
+            // This file name is a base name not a full path
             let file_name = 
                 file_path.file_name()
                 .ok_or(RifError::AddFail("Failed to get file name from path".to_owned()))?
@@ -66,6 +97,11 @@ impl RifList {
             return Err(RifError::RemFail("Failed to remove file from rif list".to_owned()));
         }
 
+        // I don't why there is no remove element but retain is my best bet...
+        for (_, file) in self.files.iter_mut() {
+            file.references.remove(file_path);
+        }
+
         // DEBUG 
         println!("{:#?}", self.files);
 
@@ -74,7 +110,9 @@ impl RifList {
     pub fn update_filestamp(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
         if file_path.exists() {
             if let Some(file) = self.files.get_mut(file_path) {
-                file.timestamp = utils::get_current_unix_time(); 
+                let unix_time = utils::get_file_unix_time(file_path)?;
+                file.timestamp = unix_time; 
+                file.last_modified = unix_time;
             } else {
                 return Err(RifError::GetFail(String::from("Failed to get file from rif_list")));
             }
@@ -84,15 +122,60 @@ impl RifList {
         Ok(())
     }
 
-    pub fn add_reference(&mut self, file_path: &PathBuf, ref_file: &PathBuf) -> Result<(), RifError> {
+    pub fn update_filestamp_force(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
+        if file_path.exists() {
+            if let Some(file) = self.files.get_mut(file_path) {
+                let unix_time = utils::get_current_unix_time();
+                file.timestamp = unix_time; 
+                file.last_modified = unix_time;
+            } else {
+                return Err(RifError::GetFail(String::from("Failed to get file from rif_list")));
+            }
+        } else {
+            return Err(RifError::GetFail(String::from("File doesn't exist")));
+        }
+        Ok(())
+    }
+
+    pub fn discard_change(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
+        if file_path.exists() {
+            if let Some(file) = self.files.get_mut(file_path) {
+                let unix_time = utils::get_current_unix_time();
+                // Only Update last_modified
+                file.last_modified = unix_time;
+            } else {
+                return Err(RifError::GetFail(String::from("Failed to get file from rif_list")));
+            }
+        } else {
+            return Err(RifError::GetFail(String::from("File doesn't exist")));
+        }
+        Ok(())
+    }
+
+    pub fn add_reference(&mut self, file_path: &PathBuf, ref_files: &HashSet<PathBuf>) -> Result<(), RifError> {
         // If file doesn't exist, return error
-        if !ref_file.exists() {
-            return Err(RifError::AddFail(format!("No such reference file exists : {:#?}", ref_file)));
+        for file in ref_files.iter() {
+            if !file.exists() {
+                return Err(RifError::AddFail(format!("No such reference file exists : {}", file.display())));
+            }
         }
 
         if let Some(file) = self.files.get_mut(file_path) {
-            file.references.push(ref_file.clone());
-            self.sanity_check_file(file_path, SanityType::Direct)?;
+            file.references = file.references.union(ref_files).cloned().collect();
+            self.sanity_check()?;
+            return Ok(());
+        } else {
+            return Err(RifError::GetFail("Failed to set status of a file : Non existant.".to_owned()));
+        }
+    }
+
+    pub fn remove_reference(&mut self, file_path: &PathBuf, ref_files: &HashSet<PathBuf>) -> Result<(), RifError> {
+        // Remove doesn't check existences
+        // Becuase artifacts cannot be fixed easily if it is
+        
+        if let Some(file) = self.files.get_mut(file_path) {
+            file.references = &file.references - ref_files;
+            self.sanity_check()?;
             return Ok(());
         } else {
             return Err(RifError::GetFail("Failed to set status of a file : Non existant.".to_owned()));
@@ -112,7 +195,7 @@ impl RifList {
         for path in self.files.keys() {
             self.sanity_check_file(path, SanityType::Indirect)?;
         }
-        println!("Successfully checked rif sanity");
+        //println!("Successfully checked rif sanity");
         Ok(())
     }
 
@@ -127,14 +210,14 @@ impl RifList {
         
         // Check if file exists in the first place
         if !target_path.exists() {
-            return Err(RifError::GetFail(format!("File {:?} doesn't exist", target_path)));
+            return Err(RifError::GetFail(format!("File {} doesn't exist", target_path.display())));
         }
 
         // Check direct self reference.
         let first_item = self.files.get(target_path).unwrap().references.iter().filter(|a| *a == target_path).next();
         // If the first exists, then target_path has same file in its reference
         if let Some(_) = first_item {
-            return Err(RifError::InvalidFormat(format!("File {:?} is referencing itself which is not allowd", target_path)));
+            return Err(RifError::InvalidFormat(format!("File <{}> is referencing itself which is not allowd", target_path.display())));
         }
 
         // Also check indirect self references.
@@ -154,7 +237,7 @@ impl RifList {
             }
 
             if let RefStatus::Invalid = ref_status {
-                return Err(RifError::InvalidFormat(format!("Infinite reference loop detected\nLast loop was {:#?}", target_path)));
+                return Err(RifError::InvalidFormat(format!("Infinite reference loop detected. Last loop was <{}>", target_path.display())));
             }
         }
 
@@ -165,18 +248,134 @@ impl RifList {
 
         // if current path is not existent return erro
         if !current_path.exists() {
-            return Err(RifError::GetFail(format!("File {:?} doesn't exist", current_path)));
+            return Err(RifError::GetFail(format!("File {} doesn't exist", current_path.display())));
         }
 
         if origin_path == current_path {
             *ref_status = RefStatus::Invalid;
         } else if let RefStatus::Valid = ref_status {
             for child in self.files.get(current_path).unwrap().references.iter() {
+
+                // Current path is same with child which means self referencing 
+                if current_path == child {
+                    return Err(RifError::InvalidFormat(format!("File <{}> is referencing itself which is not allowd", current_path.display())));
+                }
+
                 self.recursive_check(origin_path, child, ref_status)?;
             }
         }
 
         Ok(())
+    }
+
+    pub fn sanity_fix(&mut self) -> Result<(), RifError> {
+        while let Err(_) = self.sanity_check() {
+            for path in self.files.keys().cloned() {
+                if let Ok(Some((parent, child))) = self.sanity_get_invalid(&path) {
+                    println!("Found invalid {} - {}", parent.display(), child.display());
+                    self.files.get_mut(&parent).unwrap().references.remove(&child);
+                    break;
+                } else {
+                    continue;
+                }
+            }
+        }
+        //println!("Successfully fixed rif sanity");
+        Ok(())
+    }
+
+    // Get invalid references from rif list 
+    fn sanity_get_invalid(&self, target_path: &PathBuf) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
+        println!("Get invalid");
+        
+        // Check if file exists in the first place
+        if !target_path.exists() {
+            return Err(RifError::GetFail(format!("File {} doesn't exist", target_path.display())));
+        }
+
+        // Check direct self reference.
+        let first_item = self.files.get(target_path).unwrap().references.iter().filter(|a| *a == target_path).next();
+        // If the first exists, then target_path has same file in its reference
+        if let Some(path) = first_item {
+            return Ok(Some((path.clone(), path.clone())));
+        }
+
+        // Recursively check into children and check if the item is same with target_path
+        let current_file = self.files.get(target_path).unwrap();
+
+        // File has no references, then early return
+        if current_file.references.len() == 0 {
+            return Ok(None);
+        }
+
+        // Recursively check
+        let mut ref_status = RefStatus::Valid;
+        for child in self.files.get(target_path).unwrap().references.iter() {
+            return Ok(self.recursive_find_invalid(target_path, child, &mut ref_status)?);
+        }
+
+        Ok(None)
+    }
+
+    fn recursive_find_invalid(&self, origin_path: &PathBuf, current_path: &PathBuf, ref_status: &mut RefStatus) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
+
+        // if current path is not existent return erro
+        if !current_path.exists() {
+            return Err(RifError::GetFail(format!("File {} doesn't exist", current_path.display())));
+        }
+
+        if origin_path == current_path {
+            return Ok(Some((current_path.clone(), origin_path.clone())));
+        } else if let RefStatus::Valid = ref_status {
+            for child in self.files.get(current_path).unwrap().references.iter() {
+
+                // Current path is same with child which means self referencing 
+                if current_path == child {
+                    println!("LOG ::: Child is referencing itself");
+                    return Ok(Some((child.clone(), child.clone())));
+                }
+
+                return Ok(self.recursive_find_invalid(origin_path, child, ref_status)?);
+            }
+        }
+
+        Ok(None)
+    }
+
+    pub fn track_files(&self) -> Result<(), RifError> {
+        let mut modified: Vec<&PathBuf> = vec![];
+
+        for (path, file) in self.files.iter() {
+            let system_time = utils::get_file_unix_time(path)?;
+            if file.last_modified < system_time {
+                modified.push(path);
+            }
+        }
+
+        let mut display_text: String = String::new();
+        display_text.push_str("Modified files : \n");
+        if modified.len() != 0 {
+            for file in modified.iter() {
+                display_text.push_str(&format!("{}\n", file.display()));
+            }
+        } else {
+            display_text.push_str("    All files are up to date.\n");
+        }
+
+        print!("{}", display_text);
+        Ok(())
+    }
+
+    pub fn get_modified_files(&self) -> Result<Vec<PathBuf>, RifError> {
+        let mut modified: Vec<PathBuf> = vec![];
+
+        for (path, file) in self.files.iter() {
+            let system_time = utils::get_file_unix_time(path)?;
+            if file.last_modified < system_time {
+                modified.push(path.clone());
+            }
+        }
+        Ok(modified)
     }
 }
 
@@ -195,8 +394,9 @@ pub struct SingleFile {
     name: String,
     pub status: FileStatus,
     // Important - This is a unix time represented as naive date time
+    pub last_modified : NaiveDateTime,
     pub timestamp: NaiveDateTime,
-    pub references: Vec<PathBuf>,
+    pub references: HashSet<PathBuf>,
 }
 
 impl SingleFile {
@@ -205,13 +405,14 @@ impl SingleFile {
         Self {  
             name,
             status: FileStatus::Fresh,
+            last_modified: utils::get_current_unix_time(),
             timestamp: utils::get_current_unix_time(),
-            references: vec![]
+            references: HashSet::new()
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum FileStatus {
     Stale,
     Fresh,
