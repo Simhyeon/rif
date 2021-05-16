@@ -86,9 +86,6 @@ impl RifList {
             return Err(RifError::AddFail("Invalid file path: Path doesn't exist".to_owned()));
         }
 
-        // DEBUG 
-        println!("{:#?}", self.files);
-
         self.sanity_check_file(file_path, SanityType::Direct)?;
 
         Ok(())
@@ -102,10 +99,6 @@ impl RifList {
         for (_, file) in self.files.iter_mut() {
             file.references.remove(file_path);
         }
-
-        // DEBUG 
-        println!("{:#?}", self.files);
-
         Ok(())
     }
     pub fn update_filestamp(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
@@ -158,6 +151,9 @@ impl RifList {
         for file in ref_files.iter() {
             if !file.exists() {
                 return Err(RifError::AddFail(format!("No such reference file exists : {}", file.display())));
+            }
+            if let None = self.files.get(file) {
+                return Err(RifError::AddFail(format!("No such reference file exists in rif : {}", file.display())));
             }
         }
 
@@ -353,7 +349,7 @@ impl RifList {
         }
 
         let mut display_text: String = String::new();
-        display_text.push_str("Modified files : \n");
+        display_text.push_str("# Modified files : \n");
         if modified.len() != 0 {
             for file in modified.iter() {
                 display_text.push_str(&format!("    {}\n", file.display().to_string().red()));
