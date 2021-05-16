@@ -4,6 +4,7 @@ use serde::{Serialize, Deserialize};
 use chrono::NaiveDateTime;
 use itertools::Itertools;
 use crate::utils;
+use colored::*;
 
 #[derive(Debug)]
 pub enum RifError {
@@ -44,15 +45,15 @@ impl std::fmt::Display for RifList {
             let current_time = single_file.timestamp;
             let mut file_output = String::new();
             file_output.push_str(
-                &format!("<{}> - {{{:?}}}\n", path.display(), single_file.status)
+                &format!("{} {{{}}}\n", path.display(), single_file.status)
             );
             if single_file.references.len() != 0 {
-                file_output.push_str( &format!("[refs]\n"));
+                file_output.push_str( &format!("    [refs]\n"));
             }
             for ref_item in single_file.references.iter() {
-                file_output.push_str(&format!("    |- <{}>", ref_item.display()));
+                file_output.push_str(&format!("        |- {} {{{}}}", ref_item.display(), self.files.get(ref_item).unwrap().status));
                 if current_time < self.files.get(ref_item).unwrap().timestamp {
-                    file_output.push_str(&format!(" {{Updated}}"));
+                    file_output.push_str(&format!(" {{{}}}", "Updated".yellow()));
                 }
                 file_output.push_str("\n");
             }
@@ -195,7 +196,6 @@ impl RifList {
         for path in self.files.keys() {
             self.sanity_check_file(path, SanityType::Indirect)?;
         }
-        //println!("Successfully checked rif sanity");
         Ok(())
     }
 
@@ -356,10 +356,10 @@ impl RifList {
         display_text.push_str("Modified files : \n");
         if modified.len() != 0 {
             for file in modified.iter() {
-                display_text.push_str(&format!("{}\n", file.display()));
+                display_text.push_str(&format!("    {}\n", file.display().to_string().red()));
             }
         } else {
-            display_text.push_str("    All files are up to date.\n");
+            display_text.push_str(&format!("    All files are up to date.\n"));
         }
 
         print!("{}", display_text);
@@ -417,4 +417,14 @@ pub enum FileStatus {
     Stale,
     Fresh,
     Neutral // Reserved for future usages. Might be deleted after all.
+}
+
+impl std::fmt::Display for FileStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FileStatus::Stale => write!(f, "{}", "Stale".red()),
+            FileStatus::Fresh => write!(f, "{}", "Fresh".blue()),
+            FileStatus::Neutral => write!(f, "{}", "Neutral".green()),
+        }
+    }
 }
