@@ -338,7 +338,7 @@ impl RifList {
         Ok(None)
     }
 
-    pub fn track_files(&self) -> Result<(), RifError> {
+    pub fn track_modified_files(&self) -> Result<(), RifError> {
         let mut modified: Vec<&PathBuf> = vec![];
 
         for (path, file) in self.files.iter() {
@@ -349,7 +349,6 @@ impl RifList {
         }
 
         let mut display_text: String = String::new();
-        display_text.push_str("# Modified files : \n");
         if modified.len() != 0 {
             for file in modified.iter() {
                 display_text.push_str(&format!("    {}\n", file.display().to_string().red()));
@@ -372,6 +371,21 @@ impl RifList {
             }
         }
         Ok(modified)
+    }
+
+    pub fn track_unregistered_files(&self, black_list: &HashSet<PathBuf>) -> Result<(), RifError> {
+        utils::walk_directory_recursive(&std::env::current_dir()?, &| walk_path | -> Result<(), RifError> {
+            // File is not in black list
+            let stripped = utils::strip_path(walk_path.path(), None)?;
+            if !black_list.contains(&stripped) {
+                // File is not in tracked files
+                if let None = self.files.get(walk_path.path()) {
+                    println!("    {}", stripped.display().to_string().red());
+                }
+            }
+            Ok(())
+        })?;
+        Ok(())
     }
 }
 
