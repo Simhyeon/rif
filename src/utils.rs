@@ -35,12 +35,20 @@ pub fn walk_directory_recursive(path: &Path, f: &dyn Fn(DirEntry) -> Result<(), 
     Ok(())
 }
 
-fn walkdir_print_stripped(path : walkdir::DirEntry) -> Result<(), RifError> {
-    if let Ok( striped_path ) =  path.path().strip_prefix(std::env::current_dir()?) {
-        println!("{}", striped_path.display())
+pub fn strip_path(path: &Path, base_path: Option<PathBuf>) -> Result<PathBuf, RifError> {
+    if let Some(base_path) = base_path {
+        if let Ok( striped_path ) =  path.strip_prefix(base_path) {
+            Ok(striped_path.to_owned())
+        } else {
+            Err(RifError::Ext(String::from("Failed to get stripped path")))
+        }
+    } else {
+        if let Ok( striped_path ) =  path.strip_prefix(std::env::current_dir()?) {
+            Ok(striped_path.to_owned())
+        } else {
+            Err(RifError::Ext(String::from("Failed to get stripped path")))
+        }
     }
-
-    Ok(())
 }
 
 pub fn check_rif_file() -> Result<(), RifError> {
