@@ -121,3 +121,4 @@ Whole new othe projects
 
 * [x] Self reference panics on sanity check 
 This was because child was self-referencing and i didn't made such diversion to check self-referencing in child node.
+* [x] Add node method is checker struct doesn't add children to node map
