@@ -51,6 +51,7 @@ impl Cli {
             (@subcommand add =>
                 (about: "Add file to rif")
                 (@arg FILE: +required "File to add")
+                (@arg set: ... -s --set "Files to add reference to")
             )
             // TODO ::: Considiering adding short version of remove which is "rm"
             (@subcommand remove =>
@@ -73,6 +74,7 @@ impl Cli {
                 (about: "Update file's timestamp")
                 (@arg FILE: +required "File to update")
                 (@arg force: -f --force "Force update on file")
+                (@arg check: -c --check "Check after update")
             )
             (@subcommand discard =>
                 (about: "Discard file changes")
@@ -105,6 +107,15 @@ impl Cli {
                 let path = PathBuf::from(file);
                 let mut rif_list = FileIO::read_with_str(RIF_LIST_FILE)?;
                 rif_list.add_file(&path)?;
+                
+                println!("Added file: {}", file);
+
+                if let Some(files) = sub_match.values_of("set") {
+                    let set: HashSet<PathBuf> = files.map(|a| PathBuf::from(a)).collect();
+                    rif_list.add_reference(&path, &set)?;
+                    println!("Added references to: {}", file);
+                }
+
                 FileIO::save_with_str(RIF_LIST_FILE, rif_list)?;
             } 
         } 
@@ -122,6 +133,7 @@ impl Cli {
                 let path = PathBuf::from(file);
                 rif_list.remove_file(&path)?;
                 FileIO::save_with_str(RIF_LIST_FILE, rif_list)?;
+                println!("Removed file: {}", file);
             } 
         } 
         Ok(())
@@ -139,6 +151,7 @@ impl Cli {
                     let mut rif_list = FileIO::read_with_str(RIF_LIST_FILE)?;
                     rif_list.add_reference(&path, &refs)?;
                     FileIO::save_with_str(RIF_LIST_FILE, rif_list)?;
+                    println!("Added references to: {}", file);
                 }
             } 
         } 
@@ -157,6 +170,7 @@ impl Cli {
                     let mut rif_list = FileIO::read_with_str(RIF_LIST_FILE)?;
                     rif_list.remove_reference(&path, &refs)?;
                     FileIO::save_with_str(RIF_LIST_FILE, rif_list)?;
+                    println!("Removed references from: {}", file);
                 }
             } 
         } 
@@ -176,6 +190,15 @@ impl Cli {
                     rif_list.update_filestamp(&path)?;
                 }
 
+                println!("Updated file: {}", file);
+
+                if sub_match.is_present("check") {
+                    let mut checker = Checker::new();
+                    checker.add_rif_list(&rif_list)?;
+                    checker.check(&mut rif_list)?;
+                    println!("Rif check complete");
+                }
+
                 FileIO::save_with_str(RIF_LIST_FILE, rif_list)?;
             } 
         } 
@@ -191,6 +214,7 @@ impl Cli {
                 let mut rif_list = FileIO::read_with_str(RIF_LIST_FILE)?;
                 rif_list.discard_change(&path)?;
                 FileIO::save_with_str(RIF_LIST_FILE, rif_list)?;
+                println!("File modification ignored for file: {}", file);
             } 
         } 
         Ok(())
@@ -230,6 +254,7 @@ impl Cli {
         if let Some(_sub_match) = matches.subcommand_matches("new") {
             let new_rif_list = RifList::new();
             FileIO::save(&std::env::current_dir()?.join(PathBuf::from(RIF_LIST_FILE)), new_rif_list)?;
+            println!("Created new rif file in {}", std::env::current_dir()?.display());
         } 
         Ok(())
     }
@@ -258,7 +283,7 @@ impl Cli {
             utils::check_rif_file()?;
             let rif_list = FileIO::read_with_str(RIF_LIST_FILE)?;
             rif_list.track_files()?;
-            println!("\nCurrent rif status:");
+            println!("\n# Current rif status:\n---");
             print!("{}", rif_list);
         } 
         Ok(())
