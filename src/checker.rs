@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::collections::{HashMap, HashSet};
 use crate::models::{RifError, FileStatus, RifList};
+use colored::*;
 
 pub const DEFAULT_LEVEL: i32 = 0;
 
@@ -72,7 +73,8 @@ impl Checker {
         // Create new node and insert into node map
         let mut target_node = Node::new(path);
         target_node.level = highest_node_level + 1;
-        target_node.children = self.non_existing.clone();
+        // TODO ::: Fuck me... this is super autistic I missded this.
+        target_node.children = children.clone();
         self.node_map.insert(path.clone(), target_node);
 
         // All references exit
@@ -153,7 +155,7 @@ impl Checker {
             if let Some(file) = rif_list.files.get_mut(target_key) {
                 // Print status changes into stdout
                 if file.status != status {
-                    println!("Status update <{}> [{:#?}] -> [{:#?}]", target_key.display(), file.status, status);
+                    println!("Status update <{}> [{}] -> [{}]", target_key.display().to_string().green(), file.status, status);
                 }
                 file.status = status;
             } else {

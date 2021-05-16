@@ -221,6 +221,7 @@ impl Cli {
             checker.add_rif_list(&rif_list)?;
             checker.check(&mut rif_list)?;
             FileIO::save_with_str(RIF_LIST_FILE, rif_list)?;
+            println!("Rif check complete");
         } 
         Ok(())
     }
@@ -242,12 +243,12 @@ impl Cli {
             let mut raw_rif_list = FileIO::read_with_str_as_raw(RIF_LIST_FILE)?;
 
             if sub_match.is_present("fix") {
-                println!("FIFIFIX");
                 raw_rif_list.sanity_fix()?;
                 FileIO::save_with_str(RIF_LIST_FILE, raw_rif_list)?;
             } else {
                 raw_rif_list.sanity_check()?;
             }
+            println!("Rif is in valid format");
         } 
         Ok(())
     }
