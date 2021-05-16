@@ -53,8 +53,8 @@
 ### Later
 
 Branch: new_status
-* [ ] Status to show untracked files list
-	* [ ] Use gitignore to add files blacklist
+* [x] Status to show untracked files list
+* [ ] Use gitignore to add files blacklist
 
 Branch: Ergonomics
 * [x] Color print logs for better readability
