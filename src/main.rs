@@ -6,10 +6,7 @@ mod checker;
 mod cli;
 mod consts;
 
-//use std::path::{PathBuf};
 use models::RifError;
-//use checker::Checker;
-//use fileio::FileIO;
 use cli::Cli;
 
 fn main() -> Result<(), RifError> {
