@@ -282,7 +282,19 @@ impl Cli {
         if let Some(_sub_match) = matches.subcommand_matches("status") {
             utils::check_rif_file()?;
             let rif_list = FileIO::read_with_str(RIF_LIST_FILE)?;
-            rif_list.track_files()?;
+
+            println!("# Modified files :");
+            rif_list.track_modified_files()?;
+
+            // TODO :: Make option for ignore untracked files
+            println!("# Untracked files :");
+            // Default black list only includes .rif file for now
+            // Currently only check relative paths or say stripped path
+            // TODO Include .gitignore files for this
+            let mut black_list = HashSet::new();
+            black_list.insert(PathBuf::from(".rif"));
+            rif_list.track_unregistered_files(&black_list)?;
+
             println!("\n# Current rif status:\n---");
             print!("{}", rif_list);
         } 
