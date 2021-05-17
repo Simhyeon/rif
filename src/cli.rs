@@ -114,7 +114,10 @@ impl Cli {
                     return Err(RifError::Ext(String::from("You need to give batch option <-b or --batch> for batch set of references")));
                 }
 
-                let rifignore = etc_io::read_rif_ignore()?;
+                // Rifignore + const array of ignored files which are [.rif, .rifignore]
+                let mut rifignore = etc_io::read_rif_ignore()?;
+                rifignore.extend(BLACK_LIST.to_vec().iter().map(|a| PathBuf::from(*a)).collect::<HashSet<PathBuf>>());
+
                 let argc = files.len();
 
                 for file in files {
@@ -122,7 +125,18 @@ impl Cli {
 
                     // File is in rif ignore
                     if let Some(_) = rifignore.get(&path) {
-                        if argc == 1 { println!("\"{}\" is in rifignore file, which is ignored.", file) }
+                        if argc == 1 { 
+                            // File is not configurable
+                            // It's not allowed by the program
+                            if BLACK_LIST.to_vec().contains(&file) {
+                                println!("File : \"{}\" is not allowed", file);
+                            } 
+                            // File is configurable
+                            // Reove a file from rifginore to allow addition
+                            else {
+                                println!("\"{}\" is in rifignore file, which is ignored.", file) 
+                            }
+                        }
                         continue;
                     }
 
