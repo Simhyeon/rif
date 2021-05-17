@@ -66,23 +66,29 @@ Branch: Error handling
 	* [x] Make error result more distinguishable
 	Make riferror more diverse and meaningful
 
-### Later
+Branch : File structure rearrangement
+* [x] Files are getting bigger segregate them with multiple modules
 
 Branch: directory
-* [ ] Make subcommand to get directory as argument
-	* [ ] Recursive option with directory
-* [ ] Make rifignore can ignore directory
-
-Branch : File structure rearrangement
-* [ ] Files are getting bigger segregate them with multiple modules
+* [x] Make subcommand to get directory as argument
+	* [x] Recursive option with directory
+* [x] Make rifignore can ignore directory
 
 Branch: Path sanity
-* [ ] Ensure path can be absolute
+* [x] Ensure path can be absolute
 Currently all path operations assume that path is relative to rif file, which is ok in most cases however it is better to make it compatible with absolute path.
-* [ ] Make add subcommand to convert input file path into stripped path
+* [x] Make add subcommand to convert input file path into stripped path
+
+### Later
 
 Whole new other projects
 * [ ] Create vs code extension.
+
+
+### Issues
+
+#### Path sanity
+Currently path sanity and directory recursion logics are all based on the fact that command execution can be and only be done on the directory where .rif file dwells (Heavilty using std::env::current_dir method and return Err when there is no rif file in cwd). This is fine for now however it might be problematic when I enable rif to execute command on nested directories.
 
 ### Bugs
 
