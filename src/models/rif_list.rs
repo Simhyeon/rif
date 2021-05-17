@@ -356,7 +356,7 @@ impl RifList {
     }
 
     pub fn track_unregistered_files(&self, black_list: &HashSet<PathBuf>) -> Result<(), RifError> {
-        utils::walk_directory_recursive(&std::env::current_dir()?, &| walk_path | -> Result<(), RifError> {
+        utils::walk_directory_recursive(&std::env::current_dir()?, &mut | walk_path | -> Result<(), RifError> {
             // File is not in black list
             let stripped = utils::strip_path(walk_path.path(), None)?;
             if !black_list.contains(&stripped) {
