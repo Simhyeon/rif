@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::fs::metadata;
 use clap::clap_app;
 use crate::fileio::{rif_io, etc_io};
 use crate::models::{RifError, RifList};
@@ -136,6 +137,16 @@ impl Cli {
                             else {
                                 println!("\"{}\" is in rifignore file, which is ignored.", file) 
                             }
+                        }
+                        continue;
+                    }
+
+                    // if file is directory
+                    // Do nothing for now 
+                    // TODO ::: Add directory logic
+                    if metadata(file)?.is_dir() {
+                        if argc == 1 {
+                            println!("Directory cannot be added to rif");
                         }
                         continue;
                     }
