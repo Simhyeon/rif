@@ -2,6 +2,10 @@
 
 ### Imminent
 
+* [ ] Testing
+
+### Done
+
 * [x] Create desired format of toml file
 * [x] Enable creation of structure from .rif file  
 * [x] Enable multiple operations
@@ -81,16 +85,16 @@ Currently all path operations assume that path is relative to rif file, which is
 
 ### Later
 
-Whole new other projects
-* [ ] Create vs code extension.
+* [ ] Export rif as library
 
+* [ ] Create vs code extension
 
-### Issues
+### Known Issues
 
 #### Path sanity
 Currently path sanity and directory recursion logics are all based on the fact that command execution can be and only be done on the directory where .rif file dwells (Heavilty using std::env::current_dir method and return Err when there is no rif file in cwd). This is fine for now however it might be problematic when I enable rif to execute command on nested directories.
 
-### Bugs
+### Known Bugs
 
 * [x] Self reference panics on sanity check 
 This was because child was self-referencing and i didn't made such diversion to check self-referencing in child node.

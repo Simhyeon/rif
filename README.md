@@ -2,48 +2,45 @@
 
 ## Abstract
 
-This is not usable by any means. This is merely a chunk of pseudocode at a current status.
+~~This is not usable by any means. This is merely a chunk of pseudocode at a current status.~~
+I completed all the features that was planned. However I haven't tested enought to ensure this program works as intended. I'm currently dog fooding this program and fixing known bugs. If you want to use stable version, then you may have to wait.
 
-Rif checks corelation between files and decide whether the files are stale or fresh. You can use this program/library when you need to make sure all files are up to date while such files refer multiple other files.
+Rif checks corelation between files and decide whether the files are stale or fresh. You can use this program or library( to be implemented ) when you need to make sure all files are up to date while the files refer multiple other files.
 
 This is a project derived from my project called gesign. Gesign is a independent editor thus not so versatile and somewhat clunky. On the other side, rif aims to make file references check easily attachable and cross platform by default.
 
-## How corelation tree works
+## Usage
 
-Let's say a file is a node. When a single node is added to corelatio tree it checks whether it already exists. There are multiple diversions according to an existence of the file. 
+```bash
 
-### Node already exists
+rif new
 
-1. All referencing nodes exist
+rif status
 
-Do nothing and continue iteration. -> While this was different in gesign... I'm not sure why I did so. Well time will tell.
+rif add <FILE>
 
-2. No referencing nodes exist
+rif remove <FILE>
 
-Create all referencing nodes and and set the nodes' level to parent nodes' level - 1.
+rif set <FILE> <REFS>
 
-3. Some referencing node exists
+rif unset <FILE> <REFS>
 
-Create missing reference nodes and set the nodes' level to parent nodes' level - 1. Also recursively increase nodes' level by 1 starting from parent node until reaching top node.
+rif discard <FILE>
 
-### Node doesn't exist
+rif update <FILE>
 
-1. All referencing nodes exist
+rif check
 
-Crate a node and set the node's level to child node's level + 1 where the node has the highest level.
+rif sanity
 
-2. No referencing nodes exist
+```
 
-Create a node and set the node's level to default. Create all referencing nodes and set the nodes' level to parent node's level - 1 .
+## How it works
 
-3. Some referencing node exists
+To be updated
 
-Follow the first case but also creates non-existing nodes and set the nodes' level to parent node's level - 1.
+## Demo
 
-#### How checks work
-
-Corelation tree's keys are sorted by node levels in ascending order and converted int to single vector which is called level sorted vector.
-
-Checker checks currently selected file's timestamp and references and set a file status. Final result is applied to an original struct's data.
+To be updated
 
 [Todos and Known Bugs](meta.md)
