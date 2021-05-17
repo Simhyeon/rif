@@ -155,7 +155,7 @@ impl Checker {
             if let Some(file) = rif_list.files.get_mut(target_key) {
                 // Print status changes into stdout
                 if file.status != status {
-                    println!("Status update <{}> [{}] -> [{}]", target_key.display().to_string().green(), file.status, status);
+                    println!("Status update \"{}\" {} -> {}", target_key.display().to_string().green(), file.status, status);
                 }
                 file.status = status;
             } else {
