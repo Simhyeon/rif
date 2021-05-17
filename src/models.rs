@@ -45,10 +45,10 @@ impl std::fmt::Display for RifList {
             let current_time = single_file.timestamp;
             let mut file_output = String::new();
             file_output.push_str(
-                &format!("{} {{{}}}\n", path.display(), single_file.status)
+                &format!("{} {}", path.display(), single_file.status)
             );
             if single_file.references.len() != 0 {
-                file_output.push_str( &format!("    [refs]\n"));
+                file_output.push_str( &format!("\n    [refs]\n"));
             }
             for ref_item in single_file.references.iter() {
                 file_output.push_str(&format!("        |- {} {{{}}}", ref_item.display(), self.files.get(ref_item).unwrap().status));
@@ -70,36 +70,40 @@ impl RifList {
             files: HashMap::new(),
         }
     }
-    pub fn add_file(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
+    pub fn add_file(&mut self, file_path: &PathBuf) -> Result<bool, RifError> {
         // If file exists then executes.
         if file_path.exists() {
             // TODO check this logic
             // This file name is a base name not a full path
             let file_name = 
                 file_path.file_name()
-                .ok_or(RifError::AddFail("Failed to get file name from path".to_owned()))?
+                .ok_or(RifError::AddFail("Failed to get file name from path\nDid you give a directory name?".to_owned()))?
                 .to_str()
                 .ok_or(RifError::AddFail("Failed to convert file name into string".to_owned()))?
                 .to_owned();
-            self.files.insert(file_path.clone(), SingleFile::new(file_name));
+            if let None = self.files.get(file_path) {
+                self.files.insert(file_path.clone(), SingleFile::new(file_name));
+            } else {
+                return Ok(false);
+            }
         } else {
             return Err(RifError::AddFail("Invalid file path: Path doesn't exist".to_owned()));
         }
 
         self.sanity_check_file(file_path, SanityType::Direct)?;
 
-        Ok(())
+        Ok(true)
     }
-    pub fn remove_file(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
+    pub fn remove_file(&mut self, file_path: &PathBuf) -> Result<bool, RifError> {
         if let None = self.files.remove(file_path) {
-            return Err(RifError::RemFail("Failed to remove file from rif list".to_owned()));
+            return Ok(false);
         }
 
-        // I don't why there is no remove element but retain is my best bet...
         for (_, file) in self.files.iter_mut() {
             file.references.remove(file_path);
         }
-        Ok(())
+
+        Ok(true)
     }
     pub fn update_filestamp(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
         if file_path.exists() {
@@ -432,9 +436,9 @@ pub enum FileStatus {
 impl std::fmt::Display for FileStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FileStatus::Stale => write!(f, "{}", "Stale".red()),
-            FileStatus::Fresh => write!(f, "{}", "Fresh".blue()),
-            FileStatus::Neutral => write!(f, "{}", "Neutral".green()),
+            FileStatus::Stale => write!(f, "{}", "{Stale}".red()),
+            FileStatus::Fresh => write!(f, "{}", "{Fresh}".blue()),
+            FileStatus::Neutral => write!(f, "{}", "{Neutral}".green()),
         }
     }
 }
