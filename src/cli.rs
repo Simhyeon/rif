@@ -57,7 +57,7 @@ impl Cli {
                 (about: "Add file to rif")
                 (@arg FILE: ... +required "File to add")
                 (@arg set: ... -s --set "Files to add reference to")
-                (@arg batch: -b --batch "Files to add reference to")
+                (@arg batch: -b --batch "Batch set references to all files given as arguments")
             )
             // TODO ::: Considiering adding short version of remove which is "rm"
             (@subcommand remove =>
