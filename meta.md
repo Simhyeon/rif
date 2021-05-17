@@ -50,8 +50,6 @@
 		* [x] Show which file has affected the status change
 		* [x] Convert list to all information saved in rif in json
 
-### Later
-
 Branch: better_status
 * [x] Status to show untracked files list
 * [x] Use gitignore like file to add files blacklist(rifignore)
@@ -62,6 +60,8 @@ Branch: Ergonomics
 * [x] Check after update option
 * [x] Add set option for add subcommand
 
+### Later
+
 Branch: directory
 * [ ] Make subcommand to get directory as argument
 	* [ ] Recursive option with directory
@@ -69,15 +69,16 @@ Branch: directory
 
 Branch: Error handling
 * [ ] Improve error handling ergonomics
+	* [x] Make error print logging pretty to read 
 	* [ ] Make error result more distinguishable
-	* [ ] Make error print logging pretty to read 
+	Make riferror more diverse and meaningful
 
 Branch: Path sanity
 * [ ] Ensure path can be absolute
 Currently all path operations assume that path is relative to rif file, which is ok in most cases however it is better to make it compatible with absolute path.
 * [ ] Make add subcommand to convert input file path into stripped path
 
-Whole new othe projects
+Whole new other projects
 * [ ] Create vs code extension.
 
 ### Bugs
