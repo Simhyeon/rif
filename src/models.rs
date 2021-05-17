@@ -18,6 +18,21 @@ pub enum RifError {
     CheckerError(String),
 }
 
+impl std::fmt::Display for RifError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RifError::AddFail(content) => write!(f, "{}", content),
+            RifError::RemFail(content) => write!(f, "{}", content),
+            RifError::Ext(content) => write!(f, "{}", content),
+            RifError::GetFail(content) => write!(f, "{}", content),
+            RifError::InvalidFormat(content) => write!(f, "{}", content),
+            RifError::IoError(content) => write!(f, "{}", content),
+            RifError::SerdeError(content) => write!(f, "{}", content),
+            RifError::CheckerError(content) => write!(f, "{}", content),
+        }
+    }
+}
+
 // =====
 // From conversion for Rif Error
 impl From<std::io::Error> for RifError {
@@ -48,12 +63,12 @@ impl std::fmt::Display for RifList {
                 &format!("{} {}", path.display(), single_file.status)
             );
             if single_file.references.len() != 0 {
-                file_output.push_str( &format!("\n    [refs]\n"));
+                file_output.push_str( &format!("\n| [refs]\n"));
             }
             for ref_item in single_file.references.iter() {
-                file_output.push_str(&format!("        |- {} {{{}}}", ref_item.display(), self.files.get(ref_item).unwrap().status));
+                file_output.push_str(&format!("| - {} {}", ref_item.display(), self.files.get(ref_item).unwrap().status));
                 if current_time < self.files.get(ref_item).unwrap().timestamp {
-                    file_output.push_str(&format!(" {{{}}}", "Updated".yellow()));
+                    file_output.push_str(&format!(" {}", "Updated".yellow()));
                 }
                 file_output.push_str("\n");
             }
@@ -217,7 +232,7 @@ impl RifList {
         let first_item = self.files.get(target_path).unwrap().references.iter().filter(|a| *a == target_path).next();
         // If the first exists, then target_path has same file in its reference
         if let Some(_) = first_item {
-            return Err(RifError::InvalidFormat(format!("File <{}> is referencing itself which is not allowd", target_path.display())));
+            return Err(RifError::InvalidFormat(format!("File \"{}\" is referencing itself which is not allowd", target_path.display())));
         }
 
         // Also check indirect self references.
@@ -237,7 +252,7 @@ impl RifList {
             }
 
             if let RefStatus::Invalid = ref_status {
-                return Err(RifError::InvalidFormat(format!("Infinite reference loop detected. Last loop was <{}>", target_path.display())));
+                return Err(RifError::InvalidFormat(format!("Infinite reference loop detected. Last loop was \"{}\"", target_path.display())));
             }
         }
 
@@ -258,7 +273,7 @@ impl RifList {
 
                 // Current path is same with child which means self referencing 
                 if current_path == child {
-                    return Err(RifError::InvalidFormat(format!("File <{}> is referencing itself which is not allowd", current_path.display())));
+                    return Err(RifError::InvalidFormat(format!("File \"{}\" is referencing itself which is not allowd", current_path.display())));
                 }
 
                 self.recursive_check(origin_path, child, ref_status)?;
