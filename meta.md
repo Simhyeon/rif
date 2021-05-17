@@ -52,22 +52,30 @@
 
 ### Later
 
-Branch: new_status
+Branch: better_status
 * [x] Status to show untracked files list
-* [ ] Use gitignore to add files blacklist
+* [x] Use gitignore like file to add files blacklist(rifignore)
+This behaviour also affected remove and add logic
 
 Branch: Ergonomics
 * [x] Color print logs for better readability
 * [x] Check after update option
 * [x] Add set option for add subcommand
 
-Branch: Regex
-* [ ] Enable regex file arguments and multiple arguments
+Branch: directory
+* [ ] Make subcommand to get directory as argument
+	* [ ] Recursive option with directory
+* [ ] Make rifignore can ignore directory
 
 Branch: Error handling
 * [ ] Improve error handling ergonomics
-	* [ ] Make error result more understandable
+	* [ ] Make error result more distinguishable
 	* [ ] Make error print logging pretty to read 
+
+Branch: Path sanity
+* [ ] Ensure path can be absolute
+Currently all path operations assume that path is relative to rif file, which is ok in most cases however it is better to make it compatible with absolute path.
+* [ ] Make add subcommand to convert input file path into stripped path
 
 Whole new othe projects
 * [ ] Create vs code extension.
