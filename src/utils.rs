@@ -58,8 +58,10 @@ pub fn relativize_path(path: &Path) -> Result<PathBuf, RifError> {
         path_buf = strip_path(path, Some(PathBuf::from("./")))?;
     } else if path.starts_with(&std::env::current_dir()?){
         path_buf = strip_path(path, Some(std::env::current_dir()?))?;
-    } else {
+    } else if !std::env::current_dir()?.join(path).exists() {
         return Err(RifError::RifIoError(format!("Only files inside of rif directory can be added\nFile \"{}\" is not.", path.display())));
+    } else {
+        return Ok(path.to_path_buf());
     }
 
     Ok(path_buf)
