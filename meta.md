@@ -60,18 +60,18 @@ Branch: Ergonomics
 * [x] Check after update option
 * [x] Add set option for add subcommand
 
+Branch: Error handling
+* [x] Improve error handling ergonomics
+	* [x] Make error print logging pretty to read 
+	* [x] Make error result more distinguishable
+	Make riferror more diverse and meaningful
+
 ### Later
 
 Branch: directory
 * [ ] Make subcommand to get directory as argument
 	* [ ] Recursive option with directory
 * [ ] Make rifignore can ignore directory
-
-Branch: Error handling
-* [ ] Improve error handling ergonomics
-	* [x] Make error print logging pretty to read 
-	* [ ] Make error result more distinguishable
-	Make riferror more diverse and meaningful
 
 Branch : File structure rearrangement
 * [ ] Files are getting bigger segregate them with multiple modules
