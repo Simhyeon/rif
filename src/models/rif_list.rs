@@ -1,53 +1,14 @@
-use std::path::PathBuf;
-use std::collections::{HashMap, HashSet};
-use serde::{Serialize, Deserialize};
-use chrono::NaiveDateTime;
 use itertools::Itertools;
+use std::path::PathBuf;
+use std::collections::{ HashMap, HashSet };
+use serde::{ Serialize, Deserialize };
+use crate::models::{ 
+    single_file::SingleFile,
+    enums::{ SanityType, RefStatus, FileStatus },
+    rif_error::RifError
+};
 use crate::utils;
 use colored::*;
-
-#[derive(Debug)]
-pub enum RifError {
-    AddFail(String),
-    Ext(String),
-    RifIoError(String),
-    CliError(String),
-    GetFail(String),
-    InvalidFormat(String),
-    IoError(std::io::Error),
-    SerdeError(serde_json::Error),
-    CheckerError(String),
-}
-
-impl std::fmt::Display for RifError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            RifError::AddFail(content) => write!(f, "{}", content),
-            RifError::Ext(content) => write!(f, "{}", content),
-            RifError::GetFail(content) => write!(f, "{}", content),
-            RifError::InvalidFormat(content) => write!(f, "{}", content),
-            RifError::IoError(content) => write!(f, "{}", content),
-            RifError::CliError(content) => write!(f, "{}", content),
-            RifError::RifIoError(content) => write!(f, "{}", content),
-            RifError::SerdeError(content) => write!(f, "{}", content),
-            RifError::CheckerError(content) => write!(f, "{}", content),
-        }
-    }
-}
-
-// =====
-// From conversion for Rif Error
-impl From<std::io::Error> for RifError {
-    fn from(err : std::io::Error) -> Self {
-        Self::IoError(err)
-    }
-}
-impl From<serde_json::Error> for RifError {
-    fn from(err : serde_json::Error) -> Self {
-        Self::SerdeError(err)
-    }
-}
-// =====
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RifList {
@@ -407,55 +368,5 @@ impl RifList {
             Ok(())
         })?;
         Ok(())
-    }
-}
-
-pub enum SanityType {
-    Direct,
-    Indirect
-}
-
-enum RefStatus {
-    Invalid,
-    Valid
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SingleFile {
-    name: String,
-    pub status: FileStatus,
-    // Important - This is a unix time represented as naive date time
-    pub last_modified : NaiveDateTime,
-    pub timestamp: NaiveDateTime,
-    pub references: HashSet<PathBuf>,
-}
-
-impl SingleFile {
-    // Mostly for debugging purpose
-    pub fn new(name: String) -> Self {
-        Self {  
-            name,
-            status: FileStatus::Fresh,
-            last_modified: utils::get_current_unix_time(),
-            timestamp: utils::get_current_unix_time(),
-            references: HashSet::new()
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub enum FileStatus {
-    Stale,
-    Fresh,
-    Neutral // Reserved for future usages. Might be deleted after all.
-}
-
-impl std::fmt::Display for FileStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FileStatus::Stale => write!(f, "{}", "{Stale}".red()),
-            FileStatus::Fresh => write!(f, "{}", "{Fresh}".blue()),
-            FileStatus::Neutral => write!(f, "{}", "{Neutral}".green()),
-        }
     }
 }

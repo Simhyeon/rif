@@ -3,7 +3,7 @@ use std::fs::metadata;
 use walkdir::{WalkDir, DirEntry};
 use chrono::NaiveDateTime;
 use filetime::FileTime;
-use crate::models::RifError;
+use crate::models::rif_error::RifError;
 use crate::consts::*;
 
 // Get file name and return filestamp as unix time(Epoch time)

@@ -1,6 +1,10 @@
 use std::path::PathBuf;
 use std::collections::{HashMap, HashSet};
-use crate::models::{RifError, FileStatus, RifList};
+use crate::models::{
+    rif_error::RifError, 
+    enums::FileStatus, 
+    rif_list::RifList
+};
 use colored::*;
 
 pub const DEFAULT_LEVEL: i32 = 0;

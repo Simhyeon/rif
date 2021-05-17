@@ -2,7 +2,10 @@ use std::path::PathBuf;
 use std::fs::metadata;
 use clap::clap_app;
 use crate::fileio::{rif_io, etc_io};
-use crate::models::{RifError, RifList};
+use crate::models::{
+    rif_error::RifError, 
+    rif_list::RifList
+};
 use crate::checker::Checker;
 use crate::consts::*;
 use std::collections::HashSet;
