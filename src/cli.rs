@@ -112,7 +112,7 @@ impl Cli {
                 // Easily fallable mistake prevention
                 // When user is trying set multiple files references, user need to explicit
                 if files.len() > 1 && sub_match.is_present("set") && !sub_match.is_present("batch") {
-                    return Err(RifError::Ext(String::from("You need to give batch option <-b or --batch> for batch set of references")));
+                    return Err(RifError::CliError(String::from("You need to give batch option <-b or --batch> for batch set of references")));
                 }
 
                 // Rifignore + const array of ignored files which are [.rif, .rifignore]
