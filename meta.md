@@ -73,6 +73,9 @@ Branch: Error handling
 	* [ ] Make error result more distinguishable
 	Make riferror more diverse and meaningful
 
+Branch : File structure rearrangement
+* [ ] Files are getting bigger segregate them with multiple modules
+
 Branch: Path sanity
 * [ ] Ensure path can be absolute
 Currently all path operations assume that path is relative to rif file, which is ok in most cases however it is better to make it compatible with absolute path.
