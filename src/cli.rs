@@ -66,13 +66,11 @@ impl Cli {
             )
             (@subcommand set =>
                 (about: "Set references to file")
-                // THis should be an array not a single item
                 (@arg FILE: +required "File to change")
                 (@arg REFS: ... +required "Files to set")
             )
             (@subcommand unset =>
                 (about: "Unset references from file")
-                // THis should be an array not a single item
                 (@arg FILE: +required "File to change")
                 (@arg REFS: ... +required "Files to set")
             )
@@ -99,6 +97,7 @@ impl Cli {
             )
             (@subcommand status =>
                 (about: "Show current status of rif")
+                (@arg FILE: "File to show status")
                 (@arg ignore: -i --ignore "Ignore untracked files")
             )
             (@subcommand list =>
@@ -362,6 +361,12 @@ impl Cli {
         if let Some(sub_match) = matches.subcommand_matches("status") {
             utils::check_rif_file()?;
             let rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
+
+            // If status was given file argument, then print only the item status not the whole
+            if let Some(file) = sub_match.value_of("FILE") {
+                print!("{}", rif_list.display_file(&PathBuf::from(file)));
+                return Ok(());
+            }
 
             println!("# Modified files :");
             rif_list.track_modified_files()?;
