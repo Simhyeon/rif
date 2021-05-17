@@ -53,7 +53,7 @@ pub fn strip_path(path: &Path, base_path: Option<PathBuf>) -> Result<PathBuf, Ri
 
 pub fn check_rif_file() -> Result<(), RifError> {
     if !PathBuf::from(RIF_LIST_FILE).exists() {
-        return Err(RifError::Ext(format!("<{}> doesn't exist in current working directory", RIF_LIST_FILE)));
+        return Err(RifError::Ext(format!("\"{}\" doesn't exist in current working directory", RIF_LIST_FILE)));
     }
     Ok(())
 }
