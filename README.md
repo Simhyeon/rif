@@ -11,11 +11,13 @@ This is a project derived from my project called gesign. Gesign is a independent
 
 ## Usage
 
+**Basics**
+
 ```bash
 
 rif new
 
-rif status
+rif status <FILE>(optional)
 
 rif add <FILE>
 
@@ -32,6 +34,25 @@ rif update <FILE>
 rif check
 
 rif sanity
+
+```
+
+**General Usage**
+
+```bash
+
+# Add all files in current project directory
+rif add . 
+
+# Check file corelation after automatcially updating all modified files
+rif check -u
+
+# Update a file's tracking status without actually modifying file + 
+# check after update is executed
+rif update -fc
+
+# Show staut sof only the given file
+rif status <File Name>
 
 ```
 
