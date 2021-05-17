@@ -23,7 +23,7 @@ pub fn get_current_unix_time() -> NaiveDateTime {
     unix_time
 }
 
-pub fn walk_directory_recursive(path: &Path, f: &dyn Fn(DirEntry) -> Result<(), RifError>) -> Result<(), RifError> {
+pub fn walk_directory_recursive(path: &Path, f: &mut dyn FnMut(DirEntry) -> Result<(), RifError>) -> Result<(), RifError> {
     
     for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
         let md = metadata(entry.path()).unwrap();
@@ -49,6 +49,20 @@ pub fn strip_path(path: &Path, base_path: Option<PathBuf>) -> Result<PathBuf, Ri
             Err(RifError::Ext(String::from("Failed to get stripped path")))
         }
     }
+}
+
+pub fn relativize_path(path: &Path) -> Result<PathBuf, RifError> {
+    let path_buf: PathBuf;
+
+    if path.starts_with("./") {
+        path_buf = strip_path(path, Some(PathBuf::from("./")))?;
+    } else if path.starts_with(&std::env::current_dir()?){
+        path_buf = strip_path(path, Some(std::env::current_dir()?))?;
+    } else {
+        return Err(RifError::RifIoError(format!("Only files inside of rif directory can be added\nFile \"{}\" is not.", path.display())));
+    }
+
+    Ok(path_buf)
 }
 
 pub fn check_rif_file() -> Result<(), RifError> {
