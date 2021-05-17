@@ -1,9 +1,6 @@
-use std::path::PathBuf;
-use crate::models::{RifList, RifError};
-
-pub struct FileIO;
-
-impl FileIO {
+pub mod rif_io {
+    use std::path::PathBuf;
+    use crate::models::{RifList, RifError};
     // Read file and construct into RifList struct
     // Return error on errorneous process
     pub fn read(file_name: &PathBuf) -> Result<RifList, RifError> {
@@ -41,5 +38,33 @@ impl FileIO {
         let rif_content = serde_json::to_string(&rif_list)?;
         std::fs::write(file_name, rif_content)?;
         Ok(())
+    }
+}
+
+pub mod etc_io {
+    use std::path::PathBuf;
+    use crate::models::RifError;
+    use std::collections::HashSet;
+    use crate::consts::*;
+    use std::{
+        fs::File,
+        io::{prelude::*, BufReader},
+        path::Path,
+};
+
+
+    pub fn read_rif_ignore() -> Result<HashSet<PathBuf>, RifError> {
+        if let Ok(file) = File::open(RIF_IGNORE_FILE) {
+            let buffer = BufReader::new(file);
+            let ignore: Result<HashSet<PathBuf>, RifError> = buffer
+                .lines()
+                .map(|op| -> Result<PathBuf, RifError> {Ok(PathBuf::from(op?))})
+                .collect();
+
+            Ok(ignore?)
+        } else {
+            // It is perfectly normal that rifignore file doesn't exist
+            Ok(HashSet::new())
+        }
     }
 }
