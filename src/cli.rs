@@ -9,6 +9,7 @@ use crate::models::{
 use crate::checker::Checker;
 use crate::consts::*;
 use std::collections::HashSet;
+use walkdir::DirEntry;
 use crate::utils;
 
 pub struct Cli{}
@@ -119,53 +120,80 @@ impl Cli {
                 }
 
                 // Rifignore + const array of ignored files which are [.rif, .rifignore]
-                let mut rifignore = etc_io::read_rif_ignore()?;
-                rifignore.extend(BLACK_LIST.to_vec().iter().map(|a| PathBuf::from(*a)).collect::<HashSet<PathBuf>>());
+                let mut black_list = etc_io::read_rif_ignore()?;
+                black_list.extend(BLACK_LIST.to_vec().iter().map(|a| PathBuf::from(*a)).collect::<HashSet<PathBuf>>());
 
                 let argc = files.len();
 
                 for file in files {
-                    let path = PathBuf::from(file);
+                    let mut path = PathBuf::from(file);
 
                     // File is in rif ignore
-                    if let Some(_) = rifignore.get(&path) {
-                        if argc == 1 { 
+                    if let Some(_) = black_list.get(&path) {
+                        if argc == 1 {
                             // File is not configurable
                             // It's not allowed by the program
                             if BLACK_LIST.to_vec().contains(&file) {
                                 println!("File : \"{}\" is not allowed", file);
-                            } 
+                            }
                             // File is configurable
                             // Reove a file from rifginore to allow addition
                             else {
-                                println!("\"{}\" is in rifignore file, which is ignored.", file) 
+                                println!("\"{}\" is in rifignore file, which is ignored.", file)
                             }
                         }
                         continue;
                     }
 
-                    // if file is directory
-                    // Do nothing for now 
-                    // TODO ::: Add directory logic
-                    if metadata(file)?.is_dir() {
-                        if argc == 1 {
-                            println!("Directory cannot be added to rif");
+                    // If given value is . which means that input value has not been expanded.
+                    // Substitute with current working directory
+                    if path.to_str().unwrap() == "." {
+                        path = std::env::current_dir()?;
+                    }
+
+                    // ==========
+                    // Closure to recursively get inside directory and add files
+                    let mut closure = |entry : DirEntry| -> Result<(), RifError> {
+                        let striped_path = utils::relativize_path(&entry.path().to_path_buf())?;
+
+                        // Early return if file or directory is in black_list
+                        // Need to check the black_list once more because closure checks nested
+                        // directory that is not checked in outer for loop
+                        if let Some(_) = black_list.get(&striped_path) {
+                            return Ok(());
                         }
-                        continue;
-                    }
 
-                    // File was not added
-                    // e.g. file already exists
-                    if !rif_list.add_file(&path)? {
-                        continue;
-                    }
+                        rif_list.add_file(&striped_path)?;
+                        println!("Added file: {}", &striped_path.display());
 
-                    println!("Added file: {}", file);
+                        // Set option
+                        if let Some(files) = sub_match.values_of("set") {
+                            let set: HashSet<PathBuf> = files.map(|a| PathBuf::from(a)).collect();
+                            rif_list.add_reference(&striped_path, &set)?;
+                            println!("Added references to: {}", &striped_path.display());
+                        }
 
-                    if let Some(files) = sub_match.values_of("set") {
-                        let set: HashSet<PathBuf> = files.map(|a| PathBuf::from(a)).collect();
-                        rif_list.add_reference(&path, &set)?;
-                        println!("Added references to: {}", file);
+                        Ok(())
+                    };
+                    // ==========
+
+                    // if path is a directory
+                    if metadata(file)?.is_dir() {
+                        utils::walk_directory_recursive( &path, &mut closure)?;
+                    } 
+                    // if path is a file
+                    else {
+                        path = utils::relativize_path(&path)?;
+                        // File was not added e.g. file already exists
+                        if !rif_list.add_file(&path)? { continue; }
+                        println!("Added file: {}", path.display());
+
+                        // Set option
+                        if let Some(files) = sub_match.values_of("set") {
+                            let set: HashSet<PathBuf> = files.map(|a| PathBuf::from(a)).collect();
+                            rif_list.add_reference(&path, &set)?;
+                            println!("Added references to: {}", path.display());
+                        }
                     }
                 }
                 rif_io::save_with_str(RIF_LIST_FILE, rif_list)?;
