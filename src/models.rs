@@ -9,8 +9,9 @@ use colored::*;
 #[derive(Debug)]
 pub enum RifError {
     AddFail(String),
-    RemFail(String),
     Ext(String),
+    RifIoError(String),
+    CliError(String),
     GetFail(String),
     InvalidFormat(String),
     IoError(std::io::Error),
@@ -22,11 +23,12 @@ impl std::fmt::Display for RifError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RifError::AddFail(content) => write!(f, "{}", content),
-            RifError::RemFail(content) => write!(f, "{}", content),
             RifError::Ext(content) => write!(f, "{}", content),
             RifError::GetFail(content) => write!(f, "{}", content),
             RifError::InvalidFormat(content) => write!(f, "{}", content),
             RifError::IoError(content) => write!(f, "{}", content),
+            RifError::CliError(content) => write!(f, "{}", content),
+            RifError::RifIoError(content) => write!(f, "{}", content),
             RifError::SerdeError(content) => write!(f, "{}", content),
             RifError::CheckerError(content) => write!(f, "{}", content),
         }
