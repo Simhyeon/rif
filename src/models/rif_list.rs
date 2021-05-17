@@ -19,22 +19,7 @@ impl std::fmt::Display for RifList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut output = String::new();
         for path in self.files.keys().sorted() {
-            let single_file = self.files.get(path).unwrap();
-            let current_time = single_file.timestamp;
-            let mut file_output = String::new();
-            file_output.push_str(
-                &format!("{} {}", path.display(), single_file.status)
-            );
-            if single_file.references.len() != 0 {
-                file_output.push_str( &format!("\n| [refs]\n"));
-            }
-            for ref_item in single_file.references.iter() {
-                file_output.push_str(&format!("| - {} {}", ref_item.display(), self.files.get(ref_item).unwrap().status));
-                if current_time < self.files.get(ref_item).unwrap().timestamp {
-                    file_output.push_str(&format!(" {}", "Updated".yellow()));
-                }
-                file_output.push_str("\n");
-            }
+            let file_output = self.display_file(path);
             output.push_str(&format!("{}\n", file_output));
         }
         write!(f, "{}", output)
@@ -48,6 +33,28 @@ impl RifList {
             files: HashMap::new(),
         }
     }
+
+    pub fn display_file(&self, path: &PathBuf) -> String {
+        let single_file = self.files.get(path).unwrap();
+        let current_time = single_file.timestamp;
+        let mut file_output = String::new();
+        file_output.push_str(
+            &format!("> {} {}", path.display(), single_file.status)
+        );
+        if single_file.references.len() != 0 {
+            file_output.push_str( &format!("\n| [refs]\n"));
+        }
+        for ref_item in single_file.references.iter() {
+            file_output.push_str(&format!("| - {} {}", ref_item.display(), self.files.get(ref_item).unwrap().status));
+            if current_time < self.files.get(ref_item).unwrap().timestamp {
+                file_output.push_str(&format!(" {}", "Updated".yellow()));
+            }
+            file_output.push_str("\n");
+        }
+
+        file_output
+    }
+
     pub fn add_file(&mut self, file_path: &PathBuf) -> Result<bool, RifError> {
         // If file exists then executes.
         if file_path.exists() {
