@@ -2,7 +2,6 @@ use std::path::PathBuf;
 use crate::models::rif_error::RifError;
 use std::collections::HashSet;
 use crate::consts::*;
-use crate::utils;
 use std::{
     fs::File,
     io::{prelude::*, BufReader},

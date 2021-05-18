@@ -1,6 +1,5 @@
 use std::path::{PathBuf, Path};
 use std::fs::metadata;
-use walkdir::WalkDir;
 use chrono::NaiveDateTime;
 use filetime::FileTime;
 use crate::models::rif_error::RifError;
