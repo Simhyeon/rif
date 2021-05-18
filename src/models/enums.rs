@@ -1,5 +1,5 @@
-use serde::{ Serialize, Deserialize };
 use colored::*;
+use serde::{ Serialize, Deserialize };
 
 pub enum SanityType {
     Direct,

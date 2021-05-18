@@ -1,12 +1,12 @@
-mod models;
-mod fileio;
-mod utils;
 mod checker;
 mod cli;
 mod consts;
+mod fileio;
+mod models;
+mod utils;
 
-use models::rif_error::RifError;
 use cli::Cli;
+use models::rif_error::RifError;
 
 fn main() -> Result<(), RifError> {
 

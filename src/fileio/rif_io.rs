@@ -1,8 +1,10 @@
 use std::path::PathBuf;
+
 use crate::models::{
-    rif_list::RifList, 
     rif_error::RifError
+    rif_list::RifList, 
 };
+
 // Read file and construct into RifList struct
 // Return error on errorneous process
 pub fn read(file_name: &PathBuf) -> Result<RifList, RifError> {

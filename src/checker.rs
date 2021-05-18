@@ -1,13 +1,14 @@
-use std::path::PathBuf;
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
+
+use colored::*;
 use crate::models::{
-    rif_error::RifError, 
     enums::FileStatus, 
+    rif_error::RifError, 
     rif_list::RifList
 };
-use colored::*;
 
-pub const DEFAULT_LEVEL: i32 = 0;
+const DEFAULT_LEVEL: i32 = 0;
 
 #[derive(Clone, Debug)]
 struct Node {

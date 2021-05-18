@@ -1,11 +1,12 @@
-use std::path::PathBuf;
-use crate::models::rif_error::RifError;
-use std::collections::HashSet;
-use crate::consts::*;
 use std::{
     fs::File,
     io::{prelude::*, BufReader},
+    path::PathBuf,
+    collections::HashSet
 };
+
+use crate::consts::*;
+use crate::models::rif_error::RifError;
 
 pub fn read_black_list() -> Result<HashSet<PathBuf>, RifError> {
 

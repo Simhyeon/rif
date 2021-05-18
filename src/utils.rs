@@ -1,9 +1,10 @@
-use std::path::{PathBuf, Path};
 use std::fs::metadata;
+use std::path::{PathBuf, Path};
+
 use chrono::NaiveDateTime;
 use filetime::FileTime;
-use crate::models::rif_error::RifError;
 use crate::consts::*;
+use crate::models::rif_error::RifError;
 
 // Get file name and return filestamp as unix time(Epoch time)
 pub fn get_file_unix_time(path: &PathBuf) -> Result<NaiveDateTime, RifError> {

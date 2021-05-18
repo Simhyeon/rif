@@ -1,14 +1,15 @@
-use itertools::Itertools;
-use std::path::PathBuf;
 use std::collections::{ HashMap, HashSet };
+use std::path::PathBuf;
+
+use colored::*;
+use itertools::Itertools;
 use serde::{ Serialize, Deserialize };
 use crate::models::{ 
-    single_file::SingleFile,
     enums::{ SanityType, RefStatus, FileStatus },
-    rif_error::RifError
+    rif_error::RifError,
+    single_file::SingleFile,
 };
 use crate::utils::{self, LoopBranch};
-use colored::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RifList {

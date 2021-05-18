@@ -1,14 +1,15 @@
-use std::path::PathBuf;
+use std::collections::HashSet;
 use std::fs::metadata;
+use std::path::PathBuf;
+
 use clap::clap_app;
-use crate::fileio::{rif_io, etc_io};
-use crate::models::{
-    rif_error::RifError, 
-    rif_list::RifList
-};
 use crate::checker::Checker;
 use crate::consts::*;
-use std::collections::HashSet;
+use crate::fileio::{rif_io, etc_io};
+use crate::models::{ 
+    rif_error::RifError, 
+    rif_list::RifList 
+};
 use crate::utils::{self, LoopBranch};
 
 pub struct Cli{}
