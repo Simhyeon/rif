@@ -7,7 +7,7 @@ use crate::models::{
     enums::{ SanityType, RefStatus, FileStatus },
     rif_error::RifError
 };
-use crate::utils;
+use crate::utils::{self, LoopBranch};
 use colored::*;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -363,16 +363,28 @@ impl RifList {
     }
 
     pub fn track_unregistered_files(&self, black_list: &HashSet<PathBuf>) -> Result<(), RifError> {
-        utils::walk_directory_recursive(&std::env::current_dir()?, &mut | walk_path | -> Result<(), RifError> {
-            // File is not in black list
-            let stripped = utils::strip_path(walk_path.path(), None)?;
+        utils::walk_directory_recursive(&std::env::current_dir()?, &mut | walk_path | -> Result<LoopBranch, RifError> {
+            // Path is not in black list
+            let stripped = utils::strip_path(&walk_path, None)?;
             if !black_list.contains(&stripped) {
                 // File is not in tracked files
-                if let None = self.files.get(walk_path.path()) {
+                if let None = self.files.get(&walk_path) {
                     println!("    {}", stripped.display().to_string().red());
                 }
+                Ok(LoopBranch::Continue)
+            } 
+            // Path is in black_list
+            else {
+                // If path is directory than ignore further cases
+                if stripped.is_dir() {
+                    Ok(LoopBranch::Exit)
+                } 
+                // if path is a file then check other files that is located in same directory as of 
+                // the given file.
+                else {
+                    Ok(LoopBranch::Continue)
+                }
             }
-            Ok(())
         })?;
         Ok(())
     }
