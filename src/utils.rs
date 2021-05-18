@@ -1,6 +1,6 @@
 use std::path::{PathBuf, Path};
 use std::fs::metadata;
-use walkdir::{WalkDir, DirEntry};
+use walkdir::WalkDir;
 use chrono::NaiveDateTime;
 use filetime::FileTime;
 use crate::models::rif_error::RifError;
@@ -23,13 +23,35 @@ pub fn get_current_unix_time() -> NaiveDateTime {
     unix_time
 }
 
-pub fn walk_directory_recursive(path: &Path, f: &mut dyn FnMut(DirEntry) -> Result<(), RifError>) -> Result<(), RifError> {
-    
-    for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
-        let md = metadata(entry.path()).unwrap();
-        if entry.path() != path  && !md.is_dir() {
-            f(entry)?;
-        }
+/// Call a given closure on all directories under given path
+/// this function call the closure on all paths including files and directories
+/// but given path directory.
+pub fn walk_directory_recursive(path: &Path, f: &mut dyn FnMut(PathBuf) -> Result<LoopBranch, RifError>) -> Result<(), RifError> {
+    for entry in std::fs::read_dir(path)? {
+        let entry_path: PathBuf = strip_path(&entry?.path(), None)?;
+        let md = metadata(entry_path.clone()).unwrap();
+        if entry_path != path { // prevent infinite loop
+            // Not a directory
+            if !md.is_dir() {
+                if let LoopBranch::Exit = f(entry_path)? {
+                    return Ok(());
+                }
+            } 
+            // Directory, recursive call
+            else {
+                if let LoopBranch::Continue = f(entry_path.clone())? {
+                    walk_directory_recursive(&entry_path, f)?;
+                }
+            }
+        }  
+    }
+
+    Ok(())
+}
+
+pub fn walk_directory(path: &Path, f: &mut dyn FnMut(PathBuf) -> Result<(), RifError>) -> Result<(), RifError> {
+    for entry in std::fs::read_dir(path)? {
+        f(entry?.path())?;
     }
 
     Ok(())
@@ -46,7 +68,9 @@ pub fn strip_path(path: &Path, base_path: Option<PathBuf>) -> Result<PathBuf, Ri
         if let Ok( striped_path ) =  path.strip_prefix(std::env::current_dir()?) {
             Ok(striped_path.to_owned())
         } else {
-            Err(RifError::Ext(String::from("Failed to get stripped path")))
+            // This was formerlyl an error
+            // Err(RifError::Ext(String::from("Failed to get stripped path")))
+            Ok(path.to_path_buf())
         }
     }
 }
@@ -72,4 +96,9 @@ pub fn check_rif_file() -> Result<(), RifError> {
         return Err(RifError::RifIoError(format!("\"{}\" doesn't exist in current working directory", RIF_LIST_FILE)));
     }
     Ok(())
+}
+
+pub enum LoopBranch {
+    Exit,
+    Continue,
 }
