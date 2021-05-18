@@ -11,12 +11,11 @@ pub enum RefStatus {
     Valid
 }
 
-
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum FileStatus {
-    Stale,
     Fresh,
-    Neutral // Reserved for future usages. Might be deleted after all.
+    Neutral, // Reserved for future usages. Might be deleted after all.
+    Stale,
 }
 
 impl std::fmt::Display for FileStatus {

@@ -27,7 +27,6 @@ impl std::fmt::Display for RifList {
     }
 }
 
-
 impl RifList {
     pub fn new() -> Self {
         Self {  
@@ -39,12 +38,15 @@ impl RifList {
         let single_file = self.files.get(path).unwrap();
         let current_time = single_file.timestamp;
         let mut file_output = String::new();
+
         file_output.push_str(
             &format!("> {} {}", path.display(), single_file.status)
         );
+
         if single_file.references.len() != 0 {
             file_output.push_str( &format!("\n| [refs]\n"));
         }
+
         for ref_item in single_file.references.iter() {
             file_output.push_str(&format!("| - {} {}", ref_item.display(), self.files.get(ref_item).unwrap().status));
             if current_time < self.files.get(ref_item).unwrap().timestamp {
@@ -59,16 +61,8 @@ impl RifList {
     pub fn add_file(&mut self, file_path: &PathBuf) -> Result<bool, RifError> {
         // If file exists then executes.
         if file_path.exists() {
-            // TODO check this logic
-            // This file name is a base name not a full path
-            let file_name = 
-                file_path.file_name()
-                .ok_or(RifError::AddFail("Failed to get file name from path\nDid you give a directory name?".to_owned()))?
-                .to_str()
-                .ok_or(RifError::AddFail("Failed to convert file name into string".to_owned()))?
-                .to_owned();
             if let None = self.files.get(file_path) {
-                self.files.insert(file_path.clone(), SingleFile::new(file_name));
+                self.files.insert(file_path.clone(), SingleFile::new(file_path.to_path_buf()));
             } else {
                 return Ok(false);
             }
@@ -80,6 +74,7 @@ impl RifList {
 
         Ok(true)
     }
+
     pub fn remove_file(&mut self, file_path: &PathBuf) -> Result<bool, RifError> {
         if let None = self.files.remove(file_path) {
             return Ok(false);
@@ -91,6 +86,7 @@ impl RifList {
 
         Ok(true)
     }
+
     pub fn update_filestamp(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
         if file_path.exists() {
             if let Some(file) = self.files.get_mut(file_path) {
@@ -103,6 +99,7 @@ impl RifList {
         } else {
             return Err(RifError::GetFail(String::from("File doesn't exist")));
         }
+
         Ok(())
     }
 
@@ -118,6 +115,7 @@ impl RifList {
         } else {
             return Err(RifError::GetFail(String::from("File doesn't exist")));
         }
+
         Ok(())
     }
 
@@ -133,6 +131,7 @@ impl RifList {
         } else {
             return Err(RifError::GetFail(String::from("File doesn't exist")));
         }
+
         Ok(())
     }
 
@@ -150,22 +149,21 @@ impl RifList {
         if let Some(file) = self.files.get_mut(file_path) {
             file.references = file.references.union(ref_files).cloned().collect();
             self.sanity_check()?;
-            return Ok(());
+            Ok(())
         } else {
-            return Err(RifError::GetFail("Failed to set status of a file : Non existant.".to_owned()));
+            Err(RifError::GetFail("Failed to set status of a file : Non existant.".to_owned()))
         }
     }
 
     pub fn remove_reference(&mut self, file_path: &PathBuf, ref_files: &HashSet<PathBuf>) -> Result<(), RifError> {
         // Remove doesn't check existences
         // Becuase artifacts cannot be fixed easily if it is
-        
         if let Some(file) = self.files.get_mut(file_path) {
             file.references = &file.references - ref_files;
             self.sanity_check()?;
-            return Ok(());
+            Ok(())
         } else {
-            return Err(RifError::GetFail("Failed to set status of a file : Non existant.".to_owned()));
+            Err(RifError::GetFail("Failed to set status of a file : Non existant.".to_owned()))
         }
     }
 
@@ -175,6 +173,7 @@ impl RifList {
         } else {
             return Err(RifError::GetFail("Failed to set status of a file : Non existant.".to_owned()));
         }
+
         Ok(())
     }
 
@@ -216,8 +215,10 @@ impl RifList {
                 return Ok(());
             }
 
-            // Recursively check
+            // Variable for cached status
             let mut ref_status = RefStatus::Valid;
+
+            // Recursively check
             for child in self.files.get(target_path).unwrap().references.iter() {
                 self.recursive_check(target_path, child, &mut ref_status)?;
             }
@@ -241,7 +242,6 @@ impl RifList {
             *ref_status = RefStatus::Invalid;
         } else if let RefStatus::Valid = ref_status {
             for child in self.files.get(current_path).unwrap().references.iter() {
-
                 // Current path is same with child which means self referencing 
                 if current_path == child {
                     return Err(RifError::InvalidFormat(format!("File \"{}\" is referencing itself which is not allowd", current_path.display())));
@@ -266,14 +266,12 @@ impl RifList {
                 }
             }
         }
-        //println!("Successfully fixed rif sanity");
+
         Ok(())
     }
 
     // Get invalid references from rif list 
     fn sanity_get_invalid(&self, target_path: &PathBuf) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
-        println!("Get invalid");
-        
         // Check if file exists in the first place
         if !target_path.exists() {
             return Err(RifError::GetFail(format!("File {} doesn't exist", target_path.display())));
@@ -294,8 +292,10 @@ impl RifList {
             return Ok(None);
         }
 
-        // Recursively check
+        // Variable for status cache
         let mut ref_status = RefStatus::Valid;
+
+        // Recursively check
         for child in self.files.get(target_path).unwrap().references.iter() {
             return Ok(self.recursive_find_invalid(target_path, child, &mut ref_status)?);
         }
@@ -304,8 +304,7 @@ impl RifList {
     }
 
     fn recursive_find_invalid(&self, origin_path: &PathBuf, current_path: &PathBuf, ref_status: &mut RefStatus) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
-
-        // if current path is not existent return erro
+        // if current path is not existent return error
         if !current_path.exists() {
             return Err(RifError::GetFail(format!("File {} doesn't exist", current_path.display())));
         }
@@ -314,7 +313,6 @@ impl RifList {
             return Ok(Some((current_path.clone(), origin_path.clone())));
         } else if let RefStatus::Valid = ref_status {
             for child in self.files.get(current_path).unwrap().references.iter() {
-
                 // Current path is same with child which means self referencing 
                 if current_path == child {
                     println!("LOG ::: Child is referencing itself");
@@ -329,6 +327,7 @@ impl RifList {
     }
 
     pub fn track_modified_files(&self) -> Result<(), RifError> {
+        let mut display_text: String = String::new();
         let mut modified: Vec<&PathBuf> = vec![];
 
         for (path, file) in self.files.iter() {
@@ -338,7 +337,6 @@ impl RifList {
             }
         }
 
-        let mut display_text: String = String::new();
         if modified.len() != 0 {
             for file in modified.iter() {
                 display_text.push_str(&format!("    {}\n", file.display().to_string().red()));
@@ -360,22 +358,21 @@ impl RifList {
                 modified.push(path.clone());
             }
         }
+
         Ok(modified)
     }
 
     pub fn track_unregistered_files(&self, black_list: &HashSet<PathBuf>) -> Result<(), RifError> {
         utils::walk_directory_recursive(&std::env::current_dir()?, &mut | walk_path | -> Result<LoopBranch, RifError> {
-            // Path is not in black list
             let stripped = utils::strip_path(&walk_path, None)?;
+            // Path is not in black list else, is in the black list
             if !black_list.contains(&stripped) {
                 // File is not in tracked files
                 if let None = self.files.get(&walk_path) {
                     println!("    {}", stripped.display().to_string().red());
                 }
                 Ok(LoopBranch::Continue)
-            } 
-            // Path is in black_list
-            else {
+            } else {
                 // If path is directory than ignore further cases
                 if stripped.is_dir() {
                     Ok(LoopBranch::Exit)
@@ -387,6 +384,7 @@ impl RifList {
                 }
             }
         })?;
+
         Ok(())
     }
 }

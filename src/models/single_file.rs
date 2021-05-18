@@ -18,9 +18,9 @@ pub struct SingleFile {
 
 impl SingleFile {
     // Mostly for debugging purpose
-    pub fn new(name: String) -> Self {
+    pub fn new(name: PathBuf) -> Self {
         Self {  
-            name,
+            name : name.to_str().unwrap().to_owned(),
             status: FileStatus::Fresh,
             last_modified: utils::get_current_unix_time(),
             timestamp: utils::get_current_unix_time(),

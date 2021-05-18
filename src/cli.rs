@@ -13,26 +13,15 @@ use crate::models::{
 use crate::utils::{self, LoopBranch};
 
 pub struct Cli{}
-
-// REFACTOR :::
-// Make subcommand parse into a function 
-// and the function include multiple subcommand_name functions
-// No need for enum
-
 impl Cli {
     pub fn parse() -> Result<(), RifError>{
-
         let cli_args = Cli::args_builder();
         Cli::parse_subcommands(&cli_args)?;
-
         Ok(())
-    //end Parse
     }
 
     fn parse_subcommands(args: &clap::ArgMatches) -> Result<(), RifError> {
-
         Cli::subcommand_new(args)?;
-
         Cli::subcommand_add(args)?;
         Cli::subcommand_remove(args)?;
         Cli::subcommand_set(args)?;
@@ -43,7 +32,6 @@ impl Cli {
         Cli::subcommand_check(args)?;
         Cli::subcommand_sanity(args)?;
         Cli::subcommand_status(args)?;
-
         Ok(())
     }
 
@@ -59,7 +47,6 @@ impl Cli {
                 (@arg set: ... -s --set "Files to add reference to")
                 (@arg batch: -b --batch "Batch set references to all files given as arguments")
             )
-            // TODO ::: Considiering adding short version of remove which is "rm"
             (@subcommand remove =>
                 (about: "Remove file from rif")
                 (@arg FILE: ... +required "File to remove")
@@ -111,6 +98,7 @@ impl Cli {
     fn subcommand_add(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("add") {
             utils::check_rif_file()?;
+
             if let Some(files) = sub_match.values_of("FILE") {
                 let mut rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
 
@@ -120,9 +108,7 @@ impl Cli {
                     return Err(RifError::CliError(String::from("You need to give batch option <-b or --batch> for batch set of references")));
                 }
 
-                // Rifignore + const array of ignored files which are [.rif, .rifignore]
                 let black_list = etc_io::read_black_list()?;
-
                 let argc = files.len();
 
                 for file in files {
@@ -130,28 +116,27 @@ impl Cli {
 
                     // File is in rif ignore
                     if let Some(_) = black_list.get(&path) {
+                        // If argument's count is 1 display specific logs
+                        // to help user to grasp what is happening
                         if argc == 1 {
-                            // File is not configurable
+                            // If File is not configurable
                             // It's not allowed by the program
+                            // else it's allowd by the program 
                             if BLACK_LIST.to_vec().contains(&file) {
                                 println!("File : \"{}\" is not allowed", file);
-                            }
-                            // File is configurable
-                            // Reove a file from rifginore to allow addition
-                            else {
+                            } else {
                                 println!("\"{}\" is in rifignore file, which is ignored.", file)
                             }
                         }
                         continue;
                     }
 
-                    // If given value is . which means that input value has not been expanded.
-                    // Substitute with current working directory
+                    // If given value is "." which means that input value has not been expanded.
+                    // substitute with current working directory
                     if path.to_str().unwrap() == "." {
                         path = std::env::current_dir()?;
                     }
 
-                    // ==========
                     // Closure to recursively get inside directory and add files
                     let mut closure = |entry_path : PathBuf| -> Result<LoopBranch, RifError> {
                         let striped_path = utils::relativize_path(&entry_path)?;
@@ -160,7 +145,6 @@ impl Cli {
                         // Need to check the black_list once more because closure checks nested
                         // directory that is not checked in outer for loop
                         if let Some(_) = black_list.get(&striped_path) {
-                            println!("Exiting because of {}", striped_path.display());
                             if striped_path.is_dir() {
                                 return Ok(LoopBranch::Exit);
                             } 
@@ -180,16 +164,15 @@ impl Cli {
                         }
 
                         Ok(LoopBranch::Continue)
-                    };
-                    // ==========
+                    }; // Closure end here 
 
-                    // if path is a directory
+                    // if path is a directory then recusively get into it
+                    // if path is a file then simply add a file
                     if metadata(file)?.is_dir() {
                         utils::walk_directory_recursive( &path, &mut closure)?;
-                    } 
-                    // if path is a file
-                    else {
+                    } else { 
                         path = utils::relativize_path(&path)?;
+
                         // File was not added e.g. file already exists
                         if !rif_list.add_file(&path)? { continue; }
                         println!("Added file: {}", path.display());
@@ -201,16 +184,17 @@ impl Cli {
                             println!("Added references to: {}", path.display());
                         }
                     }
-                }
+                } // for loop end
                 rif_io::save_with_str(RIF_LIST_FILE, rif_list)?;
             } 
-        } 
+        }  // if let end
         Ok(())
     }
 
     fn subcommand_remove(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("remove") {
             utils::check_rif_file()?;
+
             if let Some(files) = sub_match.values_of("FILE") {
                 let mut rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
                 for file in files {
@@ -221,20 +205,21 @@ impl Cli {
                 }
                 rif_io::save_with_str(RIF_LIST_FILE, rif_list)?;
             } 
-        } 
+        }
         Ok(())
     }
 
     fn subcommand_set(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("set") {
             utils::check_rif_file()?;
+
             if let Some(file) = sub_match.value_of("FILE") {
                 if let Some(refs) = sub_match.values_of("REFS") {
                     let path = PathBuf::from(file);
                     let refs_vec: Vec<&str> = refs.collect();
                     let refs: HashSet<PathBuf> = refs_vec.iter().map(|a| PathBuf::from(a)).collect();
-
                     let mut rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
+
                     rif_list.add_reference(&path, &refs)?;
                     rif_io::save_with_str(RIF_LIST_FILE, rif_list)?;
                     println!("Added references to: {}", file);
@@ -247,13 +232,14 @@ impl Cli {
     fn subcommand_unset(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("unset") {
             utils::check_rif_file()?;
+
             if let Some(file) = sub_match.value_of("FILE") {
                 if let Some(refs) = sub_match.values_of("REFS") {
                     let path = PathBuf::from(file);
                     let refs_vec: Vec<&str> = refs.collect();
                     let refs: HashSet<PathBuf> = refs_vec.iter().map(|a| PathBuf::from(a)).collect();
-
                     let mut rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
+
                     rif_list.remove_reference(&path, &refs)?;
                     rif_io::save_with_str(RIF_LIST_FILE, rif_list)?;
                     println!("Removed references from: {}", file);
@@ -266,6 +252,7 @@ impl Cli {
     fn subcommand_update(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("update") {
             utils::check_rif_file()?;
+
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
                 let mut rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
@@ -275,7 +262,6 @@ impl Cli {
                 } else {
                     rif_list.update_filestamp(&path)?;
                 }
-
                 println!("Updated file: {}", file);
 
                 if sub_match.is_present("check") {
@@ -295,9 +281,11 @@ impl Cli {
     fn subcommand_discard(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("discard") {
             utils::check_rif_file()?;
+
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
                 let mut rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
+
                 rif_list.discard_change(&path)?;
                 rif_io::save_with_str(RIF_LIST_FILE, rif_list)?;
                 println!("File modification ignored for file: {}", file);
@@ -309,6 +297,7 @@ impl Cli {
     fn subcommand_list(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("list") {
             utils::check_rif_file()?;
+
             let rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
 
             // If list command was given file argument, 
@@ -317,7 +306,6 @@ impl Cli {
                 println!("\n{}", rif_list.display_file(&PathBuf::from(file)));
                 return Ok(());
             }
-
             println!("\n{}", rif_list);
         } 
         Ok(())
@@ -356,7 +344,7 @@ build
 target
 .git")?;
                 println!("Created new rig ignore file");
-            }
+            } // if end
         } 
         Ok(())
     }
@@ -364,6 +352,7 @@ target
     fn subcommand_sanity(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("sanity") {
             utils::check_rif_file()?;
+
             // NOTE ::: You don't have to manually call sanity check
             // Because read operation always check file sanity after reading a file
             // and return erros if sanity was not assured.
@@ -383,8 +372,8 @@ target
     fn subcommand_status(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("status") {
             utils::check_rif_file()?;
-            let rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
 
+            let rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
             println!("# Modified files :");
             rif_list.track_modified_files()?;
 
@@ -392,8 +381,8 @@ target
             if !sub_match.is_present("ignore") {
                 // Default black list only includes .rif file for now
                 // Currently only check relative paths,or say, stripped path
-                println!("\n# Untracked files :");
                 let black_list = etc_io::read_black_list()?;
+                println!("\n# Untracked files :");
                 rif_list.track_unregistered_files(&black_list)?;
             }
 

@@ -19,7 +19,7 @@ struct Node {
 }
 
 impl Node {
-    pub fn new(path: &PathBuf) -> Self {
+    fn new(path: &PathBuf) -> Self {
         Self {  
             path: path.clone(),
             level: DEFAULT_LEVEL,
@@ -33,7 +33,6 @@ pub struct Checker {
     node_map: HashMap<PathBuf, Node>,
     existing: HashSet<PathBuf>,
     non_existing: HashSet<PathBuf>,
-    //sorted: Vec<PathBuf>, // Commented because it isnot used
 }
 
 impl Checker {
@@ -46,16 +45,13 @@ impl Checker {
     }
 
     pub fn add_rif_list(&mut self, rif_list: &RifList) -> Result<(), RifError> {
-
         for tuple in rif_list.files.iter() {
             self.add_node(tuple.0, &tuple.1.references)?;
-
             // Clear is necessary because add_node utilizes internal cache for calculation
             // This may be an optimal algorithm, yet it works.
             self.existing.clear();
             self.non_existing.clear();
         }
-
         Ok(())
     }
 
@@ -72,22 +68,15 @@ impl Checker {
 
         let highest_node_level = self.get_highest_node_level(&self.existing)?;
 
-        // NOTE : Former design was to diverge by the boolean is_node_new
-        // However I thought that it might not be necessary
-        
         // Create new node and insert into node map
         let mut target_node = Node::new(path);
         target_node.level = highest_node_level + 1;
-        // TODO ::: Fuck me... this is super autistic I missded this.
         target_node.children = children.clone();
         self.node_map.insert(path.clone(), target_node);
 
-        // All references exit
-        if self.existing.len() == children.len() {
-            // Do nothing. At least for now
-        }
-        // No reference node exits
-        else if self.non_existing.len() == children.len() {
+        // If no reference node exits
+        // else, some reference node exists
+        if self.non_existing.len() == children.len() {
             for child in children.iter() {
                 // Create child node and set necessary variables
                 let mut child_node = Node::new(child);
@@ -96,9 +85,7 @@ impl Checker {
                 // Insert child node into hashmap
                 self.node_map.insert(child.clone(), child_node);
             }
-        }
-        // Some reference node exists
-        else {
+        } else {
             // Create non-existing nodes
             for child in self.non_existing.iter() {
                 // Create child node and set necessary variables
@@ -111,12 +98,12 @@ impl Checker {
 
             // Recursively increase a value by 1
             self.recursive_increase(path)?;
-        }
+        } // if else end
 
         Ok(())
-    }
+    } // function end
 
-    // Check methods modify rif list and yield result
+    // Check methods to modify rif list and yield result
     pub fn check(&mut self, rif_list: &mut RifList) -> Result<(), RifError> {
         // 1. Sort lists
         // 2. and compare children's references
@@ -131,7 +118,6 @@ impl Checker {
 
             // Item is a node retrieved with item_key
             if let Some(target_node) = self.node_map.get(target_key) {
-
                 // item_ref_keys are vector of keys which parent is the 'item'
                 let target_ref_keys = &self.node_map.get(&target_node.path).unwrap().children;
 
@@ -144,6 +130,7 @@ impl Checker {
                             status = FileStatus::Stale;
                             break;
                         }
+
                         // If child is fresh but fresher than parent, then parent is stale
                         if child_file.timestamp > rif_list.files.get(target_key).unwrap().timestamp {
                             status = FileStatus::Stale;
@@ -166,27 +153,28 @@ impl Checker {
             } else {
                 return Err(RifError::CheckerError(String::from("Failed to find item from rif list")));
             }
-        }
+        } // for loop end
 
-        //println!("Successfully checked file references");
         Ok(())
     }
 
     // This vector returns keys array
     fn get_sorted_vec(&self) -> Vec<PathBuf> {
-        let mut new_vec: Vec<(PathBuf, Node)> 
+        let mut return_vec = vec![];
+        let mut node_vec: Vec<(PathBuf, Node)> 
             = self.node_map.clone().into_iter().collect();
 
-        new_vec.sort_by(|a, b| b.1.level.cmp(&a.1.level));
+        // Sort nodes by levels
+        node_vec.sort_by(|a, b| b.1.level.cmp(&a.1.level));
+        // get only keys from node vector
+        for tuple in node_vec { return_vec.push(tuple.0); }
 
-        let mut vec = vec![];
-        for tuple in new_vec { vec.push(tuple.0); }
-        vec
+        return_vec
     }
 
     fn get_highest_node_level(&self, children : &HashSet<PathBuf>) -> Result<i32, RifError> {
-
         let children: Vec<&PathBuf> = children.iter().collect();
+
         // Early return if children's lenth is 0
         if children.len() == 0 {
             return Ok(DEFAULT_LEVEL);
@@ -213,7 +201,7 @@ impl Checker {
         }
 
         Ok(highest)
-    }
+    } // function end
 
     fn recursive_increase(&mut self, path: &PathBuf) -> Result<(), RifError> {
         // Recursively increase the level from path to top level
@@ -222,17 +210,18 @@ impl Checker {
 
         // Current node position
         let mut target_path = path.clone();
+
         loop {
             // Get parent if possible
+            // else, there is no parent, break from loop
             if let Some(parent_path) = self.node_map.get(&target_path).unwrap().parent.clone() {
                 self.node_map.get_mut(&parent_path).unwrap().level += 1;
                 target_path = parent_path;
-            } 
-            // If there is no parent, break from loop
-            else {
+            } else {
                 break;
             }
         }
+
         Ok(())
-    }
+    } // function end
 }

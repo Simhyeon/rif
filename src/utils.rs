@@ -19,7 +19,6 @@ pub fn get_file_unix_time(path: &PathBuf) -> Result<NaiveDateTime, RifError> {
 pub fn get_current_unix_time() -> NaiveDateTime {
     let now = chrono::Utc::now().timestamp();
     let unix_time = chrono::NaiveDateTime::from_timestamp(now, 0);
-
     unix_time
 }
 
@@ -30,15 +29,15 @@ pub fn walk_directory_recursive(path: &Path, f: &mut dyn FnMut(PathBuf) -> Resul
     for entry in std::fs::read_dir(path)? {
         let entry_path: PathBuf = strip_path(&entry?.path(), None)?;
         let md = metadata(entry_path.clone()).unwrap();
+
         if entry_path != path { // prevent infinite loop
-            // Not a directory
+            // if not a directory, or is a file
+            // else, is a directory, recursive call a function
             if !md.is_dir() {
                 if let LoopBranch::Exit = f(entry_path)? {
                     return Ok(());
                 }
-            } 
-            // Directory, recursive call
-            else {
+            } else {
                 if let LoopBranch::Continue = f(entry_path.clone())? {
                     walk_directory_recursive(&entry_path, f)?;
                 }
@@ -47,13 +46,12 @@ pub fn walk_directory_recursive(path: &Path, f: &mut dyn FnMut(PathBuf) -> Resul
     }
 
     Ok(())
-}
+} // function end
 
 pub fn walk_directory(path: &Path, f: &mut dyn FnMut(PathBuf) -> Result<(), RifError>) -> Result<(), RifError> {
     for entry in std::fs::read_dir(path)? {
         f(entry?.path())?;
     }
-
     Ok(())
 }
 
@@ -68,8 +66,6 @@ pub fn strip_path(path: &Path, base_path: Option<PathBuf>) -> Result<PathBuf, Ri
         if let Ok( striped_path ) =  path.strip_prefix(std::env::current_dir()?) {
             Ok(striped_path.to_owned())
         } else {
-            // This was formerlyl an error
-            // Err(RifError::Ext(String::from("Failed to get stripped path")))
             Ok(path.to_path_buf())
         }
     }
@@ -83,7 +79,7 @@ pub fn relativize_path(path: &Path) -> Result<PathBuf, RifError> {
     } else if path.starts_with(&std::env::current_dir()?){
         path_buf = strip_path(path, Some(std::env::current_dir()?))?;
     } else if !std::env::current_dir()?.join(path).exists() {
-        return Err(RifError::RifIoError(format!("Only files inside of rif directory can be added\nFile \"{}\" is not.", path.display())));
+        return Err(RifError::RifIoError( format!("Only files inside of rif directory can be added\nFile \"{}\" is not.", path.display())));
     } else {
         return Ok(path.to_path_buf());
     }

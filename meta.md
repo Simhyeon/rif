@@ -2,11 +2,14 @@
 
 ### Imminent
 
+* [ ] Make good documentation in codes and rearrange for better reading
+	* [x] Sort imports
+	* [ ] Add rust doc comments
 
-* [ ] Make good documentation in codes and rmoeve unnecessary ones
 * [ ] Add feature "update_cache" to .rif file
 User can find what has been updated within status result
 	* [ ] rif update with messages
+
 * [ ] Testing
 
 ### Done
