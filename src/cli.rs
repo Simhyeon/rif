@@ -9,8 +9,7 @@ use crate::models::{
 use crate::checker::Checker;
 use crate::consts::*;
 use std::collections::HashSet;
-use walkdir::DirEntry;
-use crate::utils;
+use crate::utils::{self, LoopBranch};
 
 pub struct Cli{}
 
@@ -119,8 +118,7 @@ impl Cli {
                 }
 
                 // Rifignore + const array of ignored files which are [.rif, .rifignore]
-                let mut black_list = etc_io::read_rif_ignore()?;
-                black_list.extend(BLACK_LIST.to_vec().iter().map(|a| PathBuf::from(*a)).collect::<HashSet<PathBuf>>());
+                let black_list = etc_io::read_black_list()?;
 
                 let argc = files.len();
 
@@ -152,17 +150,23 @@ impl Cli {
 
                     // ==========
                     // Closure to recursively get inside directory and add files
-                    let mut closure = |entry : DirEntry| -> Result<(), RifError> {
-                        let striped_path = utils::relativize_path(&entry.path().to_path_buf())?;
+                    let mut closure = |entry_path : PathBuf| -> Result<LoopBranch, RifError> {
+                        let striped_path = utils::relativize_path(&entry_path)?;
 
                         // Early return if file or directory is in black_list
                         // Need to check the black_list once more because closure checks nested
                         // directory that is not checked in outer for loop
                         if let Some(_) = black_list.get(&striped_path) {
-                            return Ok(());
+                            println!("Exiting because of {}", striped_path.display());
+                            if striped_path.is_dir() {
+                                return Ok(LoopBranch::Exit);
+                            } 
+                            else {
+                                return Ok(LoopBranch::Continue);
+                            }
                         }
 
-                        rif_list.add_file(&striped_path)?;
+                        if !rif_list.add_file(&striped_path)? { return Ok(LoopBranch::Continue); }
                         println!("Added file: {}", &striped_path.display());
 
                         // Set option
@@ -172,7 +176,7 @@ impl Cli {
                             println!("Added references to: {}", &striped_path.display());
                         }
 
-                        Ok(())
+                        Ok(LoopBranch::Continue)
                     };
                     // ==========
 
@@ -376,13 +380,7 @@ impl Cli {
                 // Default black list only includes .rif file for now
                 // Currently only check relative paths,or say, stripped path
                 println!("\n# Untracked files :");
-                let mut black_list: HashSet<PathBuf> = HashSet::new();
-                let rif_files: HashSet<PathBuf> = rif_list.files.keys().cloned().collect();
-                black_list.extend(rif_files);
-                black_list.extend(etc_io::read_rif_ignore()?);
-                black_list.insert(PathBuf::from(".rif"));
-                black_list.insert(PathBuf::from(".rifignore"));
-
+                let black_list = etc_io::read_black_list()?;
                 rif_list.track_unregistered_files(&black_list)?;
             }
 
