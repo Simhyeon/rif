@@ -28,9 +28,13 @@ platform by default.
 rif new
 
 # Show current status of the rif file
-# give optional file argument to only show the file's status
-rif status <FILE>(optional)
+rif status 
 	-i --ignore : Ignore untracked files
+	-v --verbose : Alsy display list output
+
+# Show item list of registered file
+# Optionaly give file to show only the file into the list
+rif list <FILE>(optional)
 
 # Add file to rif
 # <FILE> can be any bash glob pattern e.g "."(whole project), "*"(whole files in current directory)
@@ -91,8 +95,8 @@ rif check -u
 # check after update is executed
 rif update -fc
 
-# Show status of only the given file
-rif status <File Name>
+# Show file status of only the given file
+rif list <File Name>
 
 ```
 
