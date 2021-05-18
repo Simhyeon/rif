@@ -93,14 +93,16 @@ impl Cli {
             )
             (@subcommand new =>
                 (about: "Create a new rif file in current working directory")
+                (@arg default: -d --default "Creates defult rifignore file")
             )
             (@subcommand status =>
                 (about: "Show current status of rif")
-                (@arg FILE: "File to show status")
                 (@arg ignore: -i --ignore "Ignore untracked files")
+                (@arg verbose: -v --verbose "Ignore untracked files")
             )
             (@subcommand list =>
                 (about: "Diplay all files from rif file")
+                (@arg FILE: "File to list")
             )
         ).get_matches()
     }
@@ -304,10 +306,18 @@ impl Cli {
     }
 
     fn subcommand_list(matches: &clap::ArgMatches) -> Result<(), RifError>{
-        if let Some(_sub_match) = matches.subcommand_matches("list") {
+        if let Some(sub_match) = matches.subcommand_matches("list") {
             utils::check_rif_file()?;
             let rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
-            println!("\n{:#?}", rif_list);
+
+            // If list command was given file argument, 
+            // then print only the item not the whole list
+            if let Some(file) = sub_match.value_of("FILE") {
+                println!("\n{}", rif_list.display_file(&PathBuf::from(file)));
+                return Ok(());
+            }
+
+            println!("\n{}", rif_list);
         } 
         Ok(())
     }
@@ -334,10 +344,18 @@ impl Cli {
     }
 
     fn subcommand_new(matches: &clap::ArgMatches) -> Result<(), RifError> {
-        if let Some(_sub_match) = matches.subcommand_matches("new") {
+        if let Some(sub_match) = matches.subcommand_matches("new") {
             let new_rif_list = RifList::new();
             rif_io::save(&std::env::current_dir()?.join(PathBuf::from(RIF_LIST_FILE)), new_rif_list)?;
             println!("Created new rif file in {}", std::env::current_dir()?.display());
+
+            if sub_match.is_present("default") {
+                std::fs::write(".rifignore", "target
+build
+target
+.git")?;
+                println!("Created new rig ignore file");
+            }
         } 
         Ok(())
     }
@@ -366,12 +384,6 @@ impl Cli {
             utils::check_rif_file()?;
             let rif_list = rif_io::read_with_str(RIF_LIST_FILE)?;
 
-            // If status was given file argument, then print only the item status not the whole
-            if let Some(file) = sub_match.value_of("FILE") {
-                print!("{}", rif_list.display_file(&PathBuf::from(file)));
-                return Ok(());
-            }
-
             println!("# Modified files :");
             rif_list.track_modified_files()?;
 
@@ -384,8 +396,10 @@ impl Cli {
                 rif_list.track_unregistered_files(&black_list)?;
             }
 
-            println!("\n# Current rif status:\n---");
-            print!("{}", rif_list);
+            if sub_match.is_present("verbose") {
+                println!("\n# Current rif status:\n---");
+                print!("{}", rif_list);
+            }
         } 
         Ok(())
     }
