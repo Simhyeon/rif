@@ -2,6 +2,7 @@
 
 ### Imminent
 
+* [ ] Make good documentation in codes and rmoeve unnecessary ones
 * [ ] Testing
 
 ### Done
