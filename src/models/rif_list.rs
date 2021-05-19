@@ -55,12 +55,8 @@ impl RifList {
             &format!("> {} {}", path.display(), single_file.status)
         );
 
-        if single_file.references.len() != 0 {
-            file_output.push_str( &format!("\n| [refs]\n"));
-        }
-
         for ref_item in single_file.references.iter() {
-            file_output.push_str(&format!("| - {} {}", ref_item.display(), self.files.get(ref_item).unwrap().status));
+            file_output.push_str(&format!("\n| - {} {}", ref_item.display(), self.files.get(ref_item).unwrap().status));
             if current_time < self.files.get(ref_item).unwrap().timestamp {
                 file_output.push_str(&format!(" {}", "Updated".yellow()));
             }

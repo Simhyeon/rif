@@ -321,7 +321,7 @@ impl Cli {
                 println!("\n{}", rif_list.display_file(&PathBuf::from(file)));
                 return Ok(());
             }
-            println!("\n{}", rif_list);
+            print!("{}", rif_list);
         } 
         Ok(())
     }
