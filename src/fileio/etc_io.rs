@@ -8,7 +8,10 @@ use std::{
 use crate::consts::*;
 use crate::models::rif_error::RifError;
 
-pub fn read_black_list() -> Result<HashSet<PathBuf>, RifError> {
+/// Get black list
+///
+/// This read rig ignore file contents and merge with const black list contents
+pub fn get_black_list() -> Result<HashSet<PathBuf>, RifError> {
     let mut black_list: HashSet<PathBuf> = HashSet::new();
     let rif_ignore = read_rif_ignore()?;
 
@@ -20,6 +23,9 @@ pub fn read_black_list() -> Result<HashSet<PathBuf>, RifError> {
     Ok(black_list)
 }
 
+/// Read rif ignore file
+///
+/// Do io operation and converts into hashset
 fn read_rif_ignore() -> Result<HashSet<PathBuf>, RifError> {
     if let Ok(file) = File::open(RIF_IGNORE_FILE) {
         let buffer = BufReader::new(file);
