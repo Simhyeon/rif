@@ -8,8 +8,10 @@ use crate::models::{
     rif_list::RifList
 };
 
+/// Default level of checker node
 const DEFAULT_LEVEL: i32 = 0;
 
+/// Node that consits of checker's corelation tree
 #[derive(Clone, Debug)]
 struct Node {
     path: PathBuf,
@@ -29,6 +31,7 @@ impl Node {
     }
 }
 
+/// Checker that checks file's statuses
 pub struct Checker {
     node_map: HashMap<PathBuf, Node>,
     existing: HashSet<PathBuf>,
@@ -36,7 +39,7 @@ pub struct Checker {
 }
 
 impl Checker {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {  
             node_map: HashMap::new(),
             existing: HashSet::new(),
@@ -44,18 +47,29 @@ impl Checker {
         }
     }
 
-    pub fn add_rif_list(&mut self, rif_list: &RifList) -> Result<(), RifError> {
+    /// Create checker with given rif list
+    ///
+    /// # Args
+    /// * `rif_list` - Rif list to make node map from
+    pub fn with_rif_list(rif_list: &RifList) -> Result<Self, RifError> {
+        let mut checker = Checker::new();
+
         for tuple in rif_list.files.iter() {
-            self.add_node(tuple.0, &tuple.1.references)?;
+            checker.add_node(tuple.0, &tuple.1.references)?;
             // Clear is necessary because add_node utilizes internal cache for calculation
             // This may be an optimal algorithm, yet it works.
-            self.existing.clear();
-            self.non_existing.clear();
+            checker.existing.clear();
+            checker.non_existing.clear();
         }
-        Ok(())
+        Ok(checker)
     }
 
-    // Add node 
+    /// Add node
+    ///
+    /// This is an interanl method called by with_rif_list to add node to node map.
+    /// # Args
+    /// * `path` - File path of the node
+    /// * `children` - References of given given path
     fn add_node(&mut self, path: &PathBuf, children: &HashSet<PathBuf>) -> Result<(), RifError> {
         // Update existing vector and non-existing vector 
         for child in children.iter() {
@@ -103,7 +117,12 @@ impl Checker {
         Ok(())
     } // function end
 
-    // Check methods to modify rif list and yield result
+    /// Check file references
+    ///
+    /// This method check files' relation with references and set file' status according to referencing files' statues.
+    /// If referencing file is newer than a parent file or is stale, the parent becomes stale.
+    /// # Args
+    /// * `rif_list` - Target rif list to check references
     pub fn check(&mut self, rif_list: &mut RifList) -> Result<(), RifError> {
         // 1. Sort lists
         // 2. and compare children's references
@@ -158,7 +177,9 @@ impl Checker {
         Ok(())
     }
 
-    // This vector returns keys array
+    /// Get sorted keys by level from node map
+    ///
+    /// Sorted vector starts with a node that has the lowest level which enables checker method to safely assume that file check doesn't overlook file modifications. 
     fn get_sorted_vec(&self) -> Vec<PathBuf> {
         let mut return_vec = vec![];
         let mut node_vec: Vec<(PathBuf, Node)> 
@@ -172,6 +193,11 @@ impl Checker {
         return_vec
     }
 
+    /// Get node which has highest level from given node set
+    ///
+    /// Highest level is used to set newly created node's level.
+    /// # Args
+    /// * `children` - Hahset of node keys that used for comparisons.
     fn get_highest_node_level(&self, children : &HashSet<PathBuf>) -> Result<i32, RifError> {
         let children: Vec<&PathBuf> = children.iter().collect();
 
@@ -203,6 +229,9 @@ impl Checker {
         Ok(highest)
     } // function end
 
+    /// Recursively increase node by following upward starting from given path
+    ///
+    /// Used when some children node's were newly created to guarantee that children's level is always lower than that of parent's.
     fn recursive_increase(&mut self, path: &PathBuf) -> Result<(), RifError> {
         // Recursively increase the level from path to top level
         // Base case
