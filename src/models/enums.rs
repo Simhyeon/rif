@@ -1,16 +1,27 @@
 use colored::*;
 use serde::{ Serialize, Deserialize };
 
+/// Sanity type to branch sanity check.
+///
+/// Direct only check self referencing while indirect also checks infinite loop
 pub enum SanityType {
     Direct,
     Indirect
 }
 
+/// Medium variable to check reference status.
+///
+/// This enumerator is used for sanity checking and determines whether rif
+/// sanity is assured or not.
 pub enum RefStatus {
     Invalid,
     Valid
 }
 
+/// File status of any file.
+///
+/// Fresh means a file is up to date
+/// while stale means referencing file has been updated and the file has not.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum FileStatus {
     Fresh,

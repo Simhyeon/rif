@@ -6,7 +6,11 @@ use filetime::FileTime;
 use crate::consts::*;
 use crate::models::rif_error::RifError;
 
-// Get file name and return filestamp as unix time(Epoch time)
+/// Get file's system timestamp in unix time
+///
+/// # Args
+///
+/// * `path` - File path to get system timestamp
 pub fn get_file_unix_time(path: &PathBuf) -> Result<NaiveDateTime, RifError> {
     let metadata = std::fs::metadata(&path)?;
     // File
@@ -16,20 +20,28 @@ pub fn get_file_unix_time(path: &PathBuf) -> Result<NaiveDateTime, RifError> {
     Ok(unix_time)
 }
 
+/// Get current time in unix time
 pub fn get_current_unix_time() -> NaiveDateTime {
     let now = chrono::Utc::now().timestamp();
     let unix_time = chrono::NaiveDateTime::from_timestamp(now, 0);
     unix_time
 }
 
-/// Call a given closure on all directories under given path
-/// this function call the closure on all paths including files and directories
+/// Recursively walk directories and call a given function
+///
+/// Function is called on all paths including files and directories
 /// but given path directory.
+///
+/// # Args
+///
+/// * `path` - File path to start directory walking
+/// * `f` - Function refernce to be triggered on every path entry
 pub fn walk_directory_recursive(path: &Path, f: &mut dyn FnMut(PathBuf) -> Result<LoopBranch, RifError>) -> Result<(), RifError> {
     for entry in std::fs::read_dir(path)? {
         let entry_path: PathBuf = strip_path(&entry?.path(), None)?;
         let md = metadata(entry_path.clone()).unwrap();
 
+        // TODO Remove this check becuase std walk_dir doesn't include self path
         if entry_path != path { // prevent infinite loop
             // if not a directory, or is a file
             // else, is a directory, recursive call a function
@@ -48,6 +60,15 @@ pub fn walk_directory_recursive(path: &Path, f: &mut dyn FnMut(PathBuf) -> Resul
     Ok(())
 } // function end
 
+/// Walk directories and call a given function
+///
+/// Function is called on all paths including files and directories
+/// but given path directory.
+///
+/// # Args
+///
+/// * `path` - File path to start directory walking
+/// * `f` - Function refernce to be triggered on every path entry
 pub fn walk_directory(path: &Path, f: &mut dyn FnMut(PathBuf) -> Result<(), RifError>) -> Result<(), RifError> {
     for entry in std::fs::read_dir(path)? {
         f(entry?.path())?;
@@ -55,6 +76,26 @@ pub fn walk_directory(path: &Path, f: &mut dyn FnMut(PathBuf) -> Result<(), RifE
     Ok(())
 }
 
+/// Strip a target path with a given base path
+///
+/// If no strip path is given, then strip a current working directory from a given path.
+///
+/// # Args
+///
+/// * `path` - Target path to strip
+/// * `base_path` - Path to strip from target, default is current working directory
+///
+/// # Example
+///
+/// ```
+/// // Current working directory is /home/user/test
+/// let target_path = PathBuf::from("/home/user/test/target");
+/// let stripped = strip_path(&target_path, None);
+/// assert_eq!(stripped, PathBuf::from("target"));
+/// 
+/// let stripped2 = strip_path(&target_path, Some(PathBuf::from("/home/user")));
+/// assert_eq!(stripped, PathBuf::from("test/target"));
+/// ```
 pub fn strip_path(path: &Path, base_path: Option<PathBuf>) -> Result<PathBuf, RifError> {
     if let Some(base_path) = base_path {
         if let Ok( striped_path ) =  path.strip_prefix(base_path) {
@@ -71,6 +112,22 @@ pub fn strip_path(path: &Path, base_path: Option<PathBuf>) -> Result<PathBuf, Ri
     }
 }
 
+/// Convert a path into a relative path
+///
+/// This function yields error when absolute path doesn't start with current working directory.
+/// # Args
+///
+/// * `path` - File path to make as relative path
+///
+/// # Example
+/// ```
+/// // Current working directory is /home/user/test/example
+/// let absolute = relativize_path(PathBuf::from("/home/user/test/example"));
+/// assert_eq!(absolute, PathBuf::from("example"));
+///
+/// let dotslash = relativize_path(PathBuf::from("./test/example"));
+/// assert_eq!(absolute, PathBuf::from("example"));
+/// ```
 pub fn relativize_path(path: &Path) -> Result<PathBuf, RifError> {
     let path_buf: PathBuf;
 
@@ -87,6 +144,9 @@ pub fn relativize_path(path: &Path) -> Result<PathBuf, RifError> {
     Ok(path_buf)
 }
 
+/// Check if rif file exists
+///
+/// Return error if rif file is not in current working directory
 pub fn check_rif_file() -> Result<(), RifError> {
     if !PathBuf::from(RIF_LIST_FILE).exists() {
         return Err(RifError::RifIoError(format!("\"{}\" doesn't exist in current working directory", RIF_LIST_FILE)));
@@ -94,6 +154,9 @@ pub fn check_rif_file() -> Result<(), RifError> {
     Ok(())
 }
 
+/// Loop diversion enumerator
+///
+/// Used with walk_directory_recursive method, so that given function can decide when to stop recursion.
 pub enum LoopBranch {
     Exit,
     Continue,

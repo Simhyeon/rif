@@ -11,6 +11,7 @@ use crate::models::{
 };
 use crate::utils::{self, LoopBranch};
 
+/// RifList is a struct that stores all information about rif 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RifList {
     pub files: HashMap<PathBuf, SingleFile>,
@@ -34,6 +35,17 @@ impl RifList {
         }
     }
 
+    /// Display a single file as human readable form
+    ///
+    /// # Args
+    ///
+    /// * `path` - A file path(name) to display
+    ///
+    /// # Display format
+    ///
+    /// \> <FILE_NAME> <STATUS>
+    /// | [REFS]
+    /// | - <FILE> <STATUS>
     pub fn display_file(&self, path: &PathBuf) -> String {
         let single_file = self.files.get(path).unwrap();
         let current_time = single_file.timestamp;
@@ -58,6 +70,13 @@ impl RifList {
         file_output
     }
 
+    /// Add file to rif list
+    ///
+    /// Fails when path doesn't exist. 
+    /// Sanity is checked after addition.
+    /// # Args
+    ///
+    /// * `file_path` - A file path to add 
     pub fn add_file(&mut self, file_path: &PathBuf) -> Result<bool, RifError> {
         // If file exists then executes.
         if file_path.exists() {
@@ -75,6 +94,12 @@ impl RifList {
         Ok(true)
     }
 
+    /// Remove file from rif
+    ///
+    /// Path validity doesn't matter.
+    /// # Args
+    ///
+    /// * `file_path` - File path(name) to remove from rif.
     pub fn remove_file(&mut self, file_path: &PathBuf) -> Result<bool, RifError> {
         if let None = self.files.remove(file_path) {
             return Ok(false);
@@ -87,6 +112,12 @@ impl RifList {
         Ok(true)
     }
 
+    /// Update filestamp of file
+    ///
+    /// Update file's timestamp and last modified time into file's system last modified time.
+    /// # Args
+    ///
+    /// * `file_path` - File path(name) to update timestamp
     pub fn update_filestamp(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
         if file_path.exists() {
             if let Some(file) = self.files.get_mut(file_path) {
@@ -103,6 +134,12 @@ impl RifList {
         Ok(())
     }
 
+    /// Forcefully update filestamp of file
+    ///
+    /// Update file's timestamp into current unix time.
+    /// # Args
+    ///
+    /// * `file_path` - File path(name) to update timestamp
     pub fn update_filestamp_force(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
         if file_path.exists() {
             if let Some(file) = self.files.get_mut(file_path) {
@@ -119,6 +156,12 @@ impl RifList {
         Ok(())
     }
 
+    /// Discard file modification
+    ///
+    /// Retain file's timestamp and only update last modified time.
+    /// # Args
+    ///
+    /// * `file_path` - File path(name) to discard modification
     pub fn discard_change(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
         if file_path.exists() {
             if let Some(file) = self.files.get_mut(file_path) {
@@ -135,6 +178,14 @@ impl RifList {
         Ok(())
     }
 
+    /// Set references to a file
+    ///
+    /// This is union operation thus existing files are not affected.
+    /// References should be existent in rif list to be added to a file.
+    /// # Args
+    ///
+    /// * `file_path` - File path(name) to add references
+    /// * `ref_files` - File pahts to set as references
     pub fn add_reference(&mut self, file_path: &PathBuf, ref_files: &HashSet<PathBuf>) -> Result<(), RifError> {
         // If file doesn't exist, return error
         for file in ref_files.iter() {
@@ -155,6 +206,13 @@ impl RifList {
         }
     }
 
+    /// Unset references from a file
+    ///
+    /// This is minus operation thus references don't have to be valid path.
+    /// # Args
+    ///
+    /// * `file_path` - File path(name) to discard modification
+    /// * `ref_files` - File pahts to unset as references
     pub fn remove_reference(&mut self, file_path: &PathBuf, ref_files: &HashSet<PathBuf>) -> Result<(), RifError> {
         // Remove doesn't check existences
         // Becuase artifacts cannot be fixed easily if it is
@@ -167,6 +225,12 @@ impl RifList {
         }
     }
 
+    /// Set status for a file
+    ///
+    /// # Args
+    ///
+    /// * `file_path` - File path(name) to set a status
+    /// * `file_status` - File status to set for the file
     pub fn set_file_status(&mut self, file_path: &PathBuf, file_status: FileStatus) -> Result<(), RifError> {
         if let Some(file) = self.files.get_mut(file_path) {
             file.status = file_status;
@@ -177,6 +241,10 @@ impl RifList {
         Ok(())
     }
 
+    /// Check sanity of rif list
+    ///
+    /// Sanity is assured when: file is not referencing itself,
+    /// file referencing conclues to infinite loop
     pub fn sanity_check(&self) -> Result<(), RifError> {
         for path in self.files.keys() {
             self.sanity_check_file(path, SanityType::Indirect)?;
@@ -184,7 +252,17 @@ impl RifList {
         Ok(())
     }
 
-    // Internal function for single sanity check file
+    /// Internal function for single file sanity checking
+    ///
+    /// This method is used by sanity_check method.
+    /// If sanity type is indirect, only self referncing is checked
+    /// else if sanity type is direct, infnite loop is also checked.
+    /// Infinite loop is detected by following references recursively.
+    /// If recursion finds out repeating file_path then it is infinite loop.
+    /// # Args
+    ///
+    /// * `target_path` - File path to check sanity
+    /// * `sanity_type` - Sanity checking type 
     fn sanity_check_file(&self, target_path: &PathBuf, sanity_type: SanityType) -> Result<(), RifError> {
         // NOTE ::: Question - Why sanity type exists?
         // Answer - |
@@ -231,8 +309,23 @@ impl RifList {
         Ok(())
     }
 
+    /// Internal function for sanity checking
+    ///
+    /// This method recursively follows file references and find if referencing file is same with parent or ifinite loop is detected.
+    /// # Args
+    ///
+    /// * `origin_path` - Base comparator of recursion. If origin path is detected it is invalid.
+    /// * `current_path` - Current recursion path.
+    /// * `ref_status` - Current status of references; It is either invalid or valid.
+    ///
+    /// # Example
+    ///
+    /// Assume file references are as followed
+    /// `base -> child -> granchild -> base`
+    ///
+    /// On recursion where origin_path is base and current_path is grandchild, it will set ref_status as invalid.
+    /// 
     fn recursive_check(&self, origin_path: &PathBuf, current_path: &PathBuf, ref_status: &mut RefStatus) -> Result<(), RifError> {
-
         // if current path is not existent return erro
         if !current_path.exists() {
             return Err(RifError::GetFail(format!("File {} doesn't exist", current_path.display())));
@@ -254,6 +347,9 @@ impl RifList {
         Ok(())
     }
 
+    /// Fix invalid format so that sanity can be retained.
+    ///
+    /// Repeatedly find invalid referecning and fix until sanity check succeeds.
     pub fn sanity_fix(&mut self) -> Result<(), RifError> {
         while let Err(_) = self.sanity_check() {
             for path in self.files.keys().cloned() {
@@ -270,9 +366,15 @@ impl RifList {
         Ok(())
     }
 
-    // Get invalid references from rif list 
+    /// Find a invalid reference from rif list 
+    ///
+    /// # Args
+    ///
+    /// * `target_path` - Target file to start sanity checking
     fn sanity_get_invalid(&self, target_path: &PathBuf) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
         // Check if file exists in the first place
+        // This is mandatory because sanity_fix doesn't check sanity when they read file into
+        // struct. Thus path might not really exist.
         if !target_path.exists() {
             return Err(RifError::GetFail(format!("File {} doesn't exist", target_path.display())));
         }
@@ -303,6 +405,15 @@ impl RifList {
         Ok(None)
     }
 
+    /// Internal function find invalid reference
+    ///
+    /// This function is used by sanity_get_valid
+    /// Basic logic is very similar to that of recursive_check but it returns invalid reference to caller.
+    /// # Args
+    ///
+    /// * `origin_path` - Base comparator of recursion. If origin path is detected it is invalid.
+    /// * `current_path` - Current recursion path.
+    /// * `ref_status` - Current status of references; It is either invalid or valid.
     fn recursive_find_invalid(&self, origin_path: &PathBuf, current_path: &PathBuf, ref_status: &mut RefStatus) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
         // if current path is not existent return error
         if !current_path.exists() {
@@ -326,6 +437,10 @@ impl RifList {
         Ok(None)
     }
 
+    /// Track and print modified files 
+    ///
+    /// Modfication is determined by comparing rif's last modified and system's modifid time.
+    /// If rif's last modified time is oldere than system's modified time, it is considered as modified.
     pub fn track_modified_files(&self) -> Result<(), RifError> {
         let mut display_text: String = String::new();
         let mut modified: Vec<&PathBuf> = vec![];
@@ -349,6 +464,9 @@ impl RifList {
         Ok(())
     }
 
+    /// Get list of modified files
+    ///
+    /// Logic is very similar to track_modified_files but it returns list of modified files.
     pub fn get_modified_files(&self) -> Result<Vec<PathBuf>, RifError> {
         let mut modified: Vec<PathBuf> = vec![];
 
@@ -362,6 +480,13 @@ impl RifList {
         Ok(modified)
     }
 
+    /// Track and display unregistered files
+    ///
+    /// Unregistered file is a file which exists in under directory where rif file resides.
+    ///
+    /// # Args
+    ///
+    /// * `black_list ` - Blacklists to to ignore when tracking unregistered files
     pub fn track_unregistered_files(&self, black_list: &HashSet<PathBuf>) -> Result<(), RifError> {
         utils::walk_directory_recursive(&std::env::current_dir()?, &mut | walk_path | -> Result<LoopBranch, RifError> {
             let stripped = utils::strip_path(&walk_path, None)?;
