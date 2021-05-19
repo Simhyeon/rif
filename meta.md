@@ -2,6 +2,7 @@
 
 ### Imminent
 
+* [ ] Remove list subcommand's extra new lines
 * [ ] Make good documentation in codes and rearrange for better reading
 	* [x] Sort imports
 	* [ ] Add rust doc comments
