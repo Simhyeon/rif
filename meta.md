@@ -2,8 +2,6 @@
 
 ### Imminent
 
-* [ ] Remove list subcommand's extra new lines
-
 * [ ] Add feature "update_cache" to .rif file
 User can find what has been updated within status result
 	* [ ] rif update with messages
@@ -93,11 +91,11 @@ Branch: documentation
 	* [x] Sort imports
 	* [x] Add rust doc comments
 
+* [x] Remove list subcommand's extra new lines
 
 ### Later
 
 * [ ] Export rif as library
-
 * [ ] Create vs code extension
 
 ### Known Issues
