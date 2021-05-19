@@ -3,9 +3,6 @@
 ### Imminent
 
 * [ ] Remove list subcommand's extra new lines
-* [ ] Make good documentation in codes and rearrange for better reading
-	* [x] Sort imports
-	* [ ] Add rust doc comments
 
 * [ ] Add feature "update_cache" to .rif file
 User can find what has been updated within status result
@@ -15,7 +12,6 @@ User can find what has been updated within status result
 
 ### Done
 
-* [x] Create desired format of toml file
 * [x] Enable creation of structure from .rif file  
 * [x] Enable multiple operations
 	* [x] Add file to rifList
@@ -91,6 +87,12 @@ Branch: Path sanity
 * [x] Ensure path can be absolute
 Currently all path operations assume that path is relative to rif file, which is ok in most cases however it is better to make it compatible with absolute path.
 * [x] Make add subcommand to convert input file path into stripped path
+
+Branch: documentation
+* [x] Make good documentation in codes and rearrange for better reading
+	* [x] Sort imports
+	* [x] Add rust doc comments
+
 
 ### Later
 
