@@ -488,9 +488,11 @@ impl RifList {
             let stripped = utils::strip_path(&walk_path, None)?;
             // Path is not in black list else, is in the black list
             if !black_list.contains(&stripped) {
-                // File is not in tracked files
-                if let None = self.files.get(&walk_path) {
-                    println!("    {}", stripped.display().to_string().red());
+                if !stripped.is_dir() {
+                    // File is not in tracked files
+                    if let None = self.files.get(&walk_path) {
+                        println!("    {}", stripped.display().to_string().red());
+                    }
                 }
                 Ok(LoopBranch::Continue)
             } else {
