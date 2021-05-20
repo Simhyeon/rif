@@ -2,9 +2,16 @@
 
 ### Imminent
 
-* [ ] Add feature "update_cache" to .rif file
-User can find what has been updated within status result
-	* [ ] rif update with messages
+* [ ] Add depth option for list subcommand
+Currently only direct descendant is shown but it is not always helpful for users. Add depth option so that user can view all file relation tree in cost of performance.
+
+Branch: rif-directory
+* [ ] Migrate from .rif file into .rif directory
+This extension of functionality such as history, update hook or something like watch update relatively easy to implement without losing performance. Though current state of optimization is somewhat alreaydy mediocre though.
+* [ ] Add new features
+	* [ ] Add feature "update_cache" to .rif file, which stores all updated files list in separate file or struct.
+	* [ ] Add update message, which is similar to git commit message but set default update message to modified time
+	* [ ] Add update hook so that user can configure automatic behaviour on update.
 
 * [ ] Testing
 
