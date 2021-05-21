@@ -407,8 +407,17 @@ impl RifList {
         while let Err(_) = self.sanity_check() {
             for path in self.files.keys().cloned() {
                 if let Ok(Some((parent, child))) = self.sanity_get_invalid(&path) {
-                    println!("Found invalid {} - {}", parent.display(), child.display());
-                    self.files.get_mut(&parent).unwrap().references.remove(&child);
+                    if parent == child {
+                        println!("Found invalid {}", parent.display());
+                        self.files.remove(&parent);
+                    } else {
+                        self.files.get_mut(&parent).unwrap().references.remove(&child);
+
+                        // This means invalid reference was caused by absent child file
+                        if !child.exists() {
+                            self.files.remove(&child);
+                        }
+                    }
                     break;
                 } else {
                     continue;
@@ -425,11 +434,9 @@ impl RifList {
     ///
     /// * `target_path` - Target file to start sanity checking
     fn sanity_get_invalid(&self, target_path: &PathBuf) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
-        // Check if file exists in the first place
-        // This is mandatory because sanity_fix doesn't check sanity when they read file into
-        // struct. Thus path might not really exist.
+        // If path doesn't exit, it should be "fixed"
         if !target_path.exists() {
-            return Err(RifError::GetFail(format!("File {} doesn't exist", target_path.display())));
+            return Ok(Some((target_path.clone(), target_path.clone())));
         }
 
         // Check direct self reference.
@@ -439,9 +446,7 @@ impl RifList {
             return Ok(Some((path.clone(), path.clone())));
         }
 
-        // Recursively check into children and check if the item is same with target_path
         let current_file = self.files.get(target_path).unwrap();
-
         // File has no references, then early return
         if current_file.references.len() == 0 {
             return Ok(None);
@@ -468,9 +473,9 @@ impl RifList {
     /// * `current_path` - Current recursion path.
     /// * `ref_status` - Current status of references; It is either invalid or valid.
     fn recursive_find_invalid(&self, origin_path: &PathBuf, current_path: &PathBuf, ref_status: &mut RefStatus) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
-        // if current path is not existent return error
+        // if current path doesn't exit it should be fixed
         if !current_path.exists() {
-            return Err(RifError::GetFail(format!("File {} doesn't exist", current_path.display())));
+            return Ok(Some((origin_path.clone(), current_path.clone())));
         }
 
         if origin_path == current_path {
