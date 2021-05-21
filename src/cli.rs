@@ -30,6 +30,7 @@ impl Cli {
         Cli::subcommand_new(args)?;
         Cli::subcommand_add(args)?;
         Cli::subcommand_remove(args)?;
+        Cli::subcommand_rename(args)?;
         Cli::subcommand_set(args)?;
         Cli::subcommand_unset(args)?;
         Cli::subcommand_update(args)?;
@@ -59,6 +60,11 @@ impl Cli {
             (@subcommand remove =>
                 (about: "Remove file from rif")
                 (@arg FILE: ... +required "File to remove")
+            )
+            (@subcommand rename =>
+                (about: "Rename a file")
+                (@arg FILE: +required "File to rename")
+                (@arg NEWNAME: +required "New file name")
             )
             (@subcommand set =>
                 (about: "Set references to file")
@@ -219,6 +225,22 @@ impl Cli {
                     }
                 }
                 rif_io::save( rif_list)?;
+            } 
+        }
+        Ok(())
+    }
+
+    /// Check if `rename` subcommand was given and parse subcommand options
+    fn subcommand_rename(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        if let Some(sub_match) = matches.subcommand_matches("rename") {
+            utils::check_rif_file()?;
+
+            if let Some(file) = sub_match.value_of("FILE") {
+                if let Some(new_name) = sub_match.value_of("NEWNAME") {
+                    let mut raw_rif_list = rif_io::read_as_raw()?;
+                    raw_rif_list.rename_file(&PathBuf::from(file), &PathBuf::from(new_name))?;
+                    rif_io::save(raw_rif_list)?;
+                }
             } 
         }
         Ok(())
