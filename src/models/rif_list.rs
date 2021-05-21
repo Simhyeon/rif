@@ -129,6 +129,10 @@ impl RifList {
     ///
     /// * `file_path` - A file path to add 
     pub fn add_file(&mut self, file_path: &PathBuf) -> Result<bool, RifError> {
+        // Prevent directory from added
+        if file_path.is_dir() {
+            return Ok(false);
+        }
         // If file exists then executes.
         if file_path.exists() {
             if let None = self.files.get(file_path) {
