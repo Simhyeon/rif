@@ -146,9 +146,8 @@ impl Cli {
                     if path.to_str().unwrap() == "." {
                         path = std::env::current_dir()?;
                     } else {
-                        if path.is_dir() {
-                            if argc == 1 { println!("Directory cannot be added to rif."); }
-                            continue;
+                        if path.is_dir() && argc == 1 {
+                            println!("Directory cannot be added to rif.");
                         }
                     }
 
