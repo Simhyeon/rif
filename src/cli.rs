@@ -391,7 +391,7 @@ target
             } else {
                 raw_rif_list.sanity_check()?;
             }
-            println!("Rif is in valid format");
+            println!("Sucessfully fixed rif file");
         } 
         Ok(())
     }
