@@ -112,7 +112,6 @@ impl Cli {
 
             if let Some(files) = sub_match.values_of("FILE") {
                 let mut rif_list = rif_io::read()?;
-
                 // Easily fallable mistake prevention
                 // When user is trying set multiple files references, user need to explicit
                 if files.len() > 1 && sub_match.is_present("set") && !sub_match.is_present("batch") {
@@ -146,6 +145,11 @@ impl Cli {
                     // substitute with current working directory
                     if path.to_str().unwrap() == "." {
                         path = std::env::current_dir()?;
+                    } else {
+                        if argc == 1 && path.is_dir() {
+                            println!("Directory cannot be added to rif.");
+                            continue;
+                        }
                     }
 
                     // Closure to recursively get inside directory and add files
