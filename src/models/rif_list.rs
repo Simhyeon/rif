@@ -180,7 +180,10 @@ impl RifList {
         }
 
         if let Some(mut value) = self.files.remove(file_path) {
+            // Update to new name
             value.update_name(new_name);
+            // Discard change because intended modification is only rename
+            value.last_modified = utils::get_current_unix_time();
             self.files.insert(new_name.to_path_buf(), value);
         } else {
             return Err(RifError::Ext(String::from("No file to rename")));
