@@ -65,7 +65,6 @@ impl RifList {
                     print!(" {}", "Updated".yellow());
                 }
             }
-            file_output.push_str("\n");
         }
 
         file_output
@@ -83,7 +82,6 @@ impl RifList {
             print!("> {} {}\n", path.to_str().unwrap().green(), single_file.status);
             if single_file.references.len() != 0 && depth != 1 {
                 self.display_file_recursive(&path, std::cmp::max(1, depth) - 1, 1)?;
-                print!("\n");
             }
         }
         Ok(())
