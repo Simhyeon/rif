@@ -115,3 +115,4 @@ Currently path sanity and directory recursion logics are all based on the fact t
 This was because child was self-referencing and i didn't made such diversion to check self-referencing in child node.
 * [x] Add node method is checker struct doesn't add children to node map
 * [x] .rifignore is not properly applied on directories
+* [x] Sanity fix doesn't fix non existent path error
