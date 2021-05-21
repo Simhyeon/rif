@@ -36,5 +36,14 @@ impl SingleFile {
             references: HashSet::new()
         }
     }
+
+    /// Update single file structs name to new one
+    ///
+    /// # Args
+    /// 
+    /// * `new_name` - New name to update
+    pub fn update_name(&mut self, new_name: &PathBuf) {
+        self.name = new_name.file_name().unwrap().to_str().unwrap().to_owned();
+    }
 }
 
