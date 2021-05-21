@@ -45,25 +45,80 @@ impl RifList {
     ///
     /// \> <FILE_NAME> <STATUS>
     /// | [REFS]
-    /// | - <FILE> <STATUS>
+    /// - > <FILE> <STATUS>
     pub fn display_file(&self, path: &PathBuf) -> String {
         let single_file = self.files.get(path).unwrap();
         let current_time = single_file.timestamp;
         let mut file_output = String::new();
 
         file_output.push_str(
-            &format!("> {} {}", path.display(), single_file.status)
+            &format!("> {} {}", path.to_str().unwrap().green(), single_file.status)
         );
 
         for ref_item in single_file.references.iter() {
-            file_output.push_str(&format!("\n| - {} {}", ref_item.display(), self.files.get(ref_item).unwrap().status));
+            file_output.push_str(&format!("\n- > {} {}", ref_item.display(), self.files.get(ref_item).unwrap().status));
             if current_time < self.files.get(ref_item).unwrap().timestamp {
                 file_output.push_str(&format!(" {}", "Updated".yellow()));
+            }
+            if let FileStatus::Stale = single_file.status {
+                if current_time < self.files.get(ref_item).unwrap().timestamp {
+                    print!(" {}", "Updated".yellow());
+                }
             }
             file_output.push_str("\n");
         }
 
         file_output
+    }
+
+    /// Print rif relation tree with given nested level
+    ///
+    /// # Args
+    ///
+    /// * `depth` - Desired depth value to display
+    pub fn display_file_depth(&self, depth: u8) -> Result<(), RifError> {
+        for path in self.files.keys().cloned().sorted() {
+            // This should always work theoritically
+            let single_file = self.files.get(&path).unwrap();
+            print!("> {} {}\n", path.to_str().unwrap().green(), single_file.status);
+            if single_file.references.len() != 0 && depth != 1 {
+                self.display_file_recursive(&path, std::cmp::max(1, depth) - 1, 1)?;
+                print!("\n");
+            }
+        }
+        Ok(())
+    }
+
+    /// Display recursively
+    ///
+    /// Internal function used by display_file_depth
+    /// # Args
+    ///
+    /// * `path` - A file path(name) to display
+    /// * `current_depth` - Current depth in recursion
+    fn display_file_recursive(&self, path: &PathBuf, current_depth: u8, indent_level: u8) -> Result<(), RifError> {
+        let parent_file = self.files.get(path).unwrap();
+        let current_time = parent_file.timestamp;
+
+        for ref_item_key in parent_file.references.iter() {
+            let ref_item = self.files.get(ref_item_key).unwrap();
+            for _ in 0..indent_level {
+                print!("  ");
+            }
+            print!("- > {} {}", ref_item_key.display(), ref_item.status);
+            if let FileStatus::Stale = parent_file.status {
+                if current_time < ref_item.timestamp {
+                    print!(" {}", "Updated".yellow());
+                }
+            }
+            print!("\n");
+            if ref_item.references.len() != 0 && current_depth != 1 {
+                // if given value is 0, then it prints whole tree
+                self.display_file_recursive(ref_item_key, std::cmp::max(1, current_depth) - 1, indent_level + 1)?;
+            }
+        }
+
+        Ok(())
     }
 
     /// Add file to rif list

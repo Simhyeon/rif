@@ -53,7 +53,7 @@ impl Cli {
             (@subcommand add =>
                 (about: "Add file to rif")
                 (@arg FILE: ... +required "File to add")
-                (@arg set: ... -s --set "Files to add reference to")
+                (@arg set: ... -s --set +takes_value "Files to add reference to")
                 (@arg batch: -b --batch "Batch set references to all files given as arguments")
             )
             (@subcommand remove =>
@@ -100,6 +100,7 @@ impl Cli {
             (@subcommand list =>
                 (about: "Diplay all files from rif file")
                 (@arg FILE: "File to list")
+                (@arg depth: -d --depth +takes_value "Maximum depth for display tree(unsigned integer). 0 means print a whole tree")
             )
         ).get_matches()
     }
@@ -314,14 +315,20 @@ impl Cli {
             utils::check_rif_file()?;
 
             let rif_list = rif_io::read()?;
-
             // If list command was given file argument, 
             // then print only the item not the whole list
             if let Some(file) = sub_match.value_of("FILE") {
                 println!("\n{}", rif_list.display_file(&PathBuf::from(file)));
                 return Ok(());
+            } else if let Some(depth) = sub_match.value_of("depth") {
+                if let Ok(depth) = depth.parse::<u8>() {
+                    rif_list.display_file_depth(depth)?;
+                } else {
+                    return Err(RifError::Ext(String::from("Failed to parse depth because is is either not unsinged integer or invalid number")));
+                }
+            } else {
+                print!("{}", rif_list);
             }
-            print!("{}", rif_list);
         } 
         Ok(())
     }
