@@ -98,6 +98,7 @@ Branch: documentation
 * [x] Remove list subcommand's extra new lines
 * [x] Add depth option for list subcommand
 Currently only direct descendant is shown but it is not always helpful for users. Add depth option so that user can view all file relation tree in cost of performance.
+* [x] Rename file method and command line option
 
 ### Later
 
