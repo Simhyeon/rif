@@ -2,9 +2,6 @@
 
 ### Imminent
 
-* [ ] Add depth option for list subcommand
-Currently only direct descendant is shown but it is not always helpful for users. Add depth option so that user can view all file relation tree in cost of performance.
-
 Branch: rif-directory
 * [ ] Migrate from .rif file into .rif directory
 This extension of functionality such as history, update hook or something like watch update relatively easy to implement without losing performance. Though current state of optimization is somewhat alreaydy mediocre though.
@@ -99,6 +96,8 @@ Branch: documentation
 	* [x] Add rust doc comments
 
 * [x] Remove list subcommand's extra new lines
+* [x] Add depth option for list subcommand
+Currently only direct descendant is shown but it is not always helpful for users. Add depth option so that user can view all file relation tree in cost of performance.
 
 ### Later
 
