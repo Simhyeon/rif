@@ -240,6 +240,7 @@ impl Cli {
                     let mut raw_rif_list = rif_io::read_as_raw()?;
                     raw_rif_list.rename_file(&PathBuf::from(file), &PathBuf::from(new_name))?;
                     rif_io::save(raw_rif_list)?;
+                    println!("Sucessfully renamed \"{}\" to \"{}\"", file, new_name);
                 }
             } 
         }
