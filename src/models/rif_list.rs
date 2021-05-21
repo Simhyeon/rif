@@ -165,6 +165,36 @@ impl RifList {
         Ok(true)
     }
 
+    /// Rename a file in rif
+    ///
+    /// This operation require new_name path does exists and doesn't check path of old_name
+    /// # Args
+    ///
+    /// * `file_path` - File path(name) to rename.
+    /// * `new_name` - New file name to apply
+    pub fn rename_file(&mut self, file_path: &PathBuf, new_name : &PathBuf) -> Result<(), RifError> {
+
+        // new name doesn't exist
+        if !new_name.exists() {
+            return Err(RifError::RifIoError(format!("\"{}\" doesn't exit", new_name.display())));
+        }
+
+        if let Some(mut value) = self.files.remove(file_path) {
+            value.update_name(new_name);
+            self.files.insert(new_name.to_path_buf(), value);
+        } else {
+            return Err(RifError::Ext(String::from("No file to rename")));
+        }
+
+        for (_, file) in self.files.iter_mut() {
+            if file.references.remove(file_path) {
+                file.references.insert(new_name.to_path_buf());
+            }
+        }
+
+        Ok(())
+    }
+
     /// Update filestamp of file
     ///
     /// Update file's timestamp and last modified time into file's system last modified time.
