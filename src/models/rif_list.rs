@@ -57,12 +57,9 @@ impl RifList {
 
         for ref_item in single_file.references.iter() {
             file_output.push_str(&format!("\n  - > {} {}", ref_item.display(), self.files.get(ref_item).unwrap().status));
-            if current_time < self.files.get(ref_item).unwrap().timestamp {
-                file_output.push_str(&format!(" {}", "Updated".yellow()));
-            }
             if let FileStatus::Stale = single_file.status {
                 if current_time < self.files.get(ref_item).unwrap().timestamp {
-                    print!(" {}", "Updated".yellow());
+                    file_output.push_str(&format!(" {}", "Updated".yellow()));
                 }
             }
         }

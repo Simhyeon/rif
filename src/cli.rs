@@ -101,7 +101,7 @@ impl Cli {
             (@subcommand status =>
                 (about: "Show current status of rif")
                 (@arg ignore: -i --ignore "Ignore untracked files")
-                (@arg verbose: -v --verbose "Ignore untracked files")
+                (@arg verbose: -v --verbose "Also print out list")
             )
             (@subcommand list =>
                 (about: "Diplay all files from rif file")
