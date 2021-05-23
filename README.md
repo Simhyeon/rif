@@ -136,7 +136,7 @@ Make sure rust langauge is installed. [Link](https://www.rust-lang.org/tools/ins
 git clone https://github.com/simhyeon/rif
 
 # And build with cargo, compiled binary is located in target/release
-cd rif && cargo run --release
+cd rif && cargo build --release
 ```
 
 ## Demo
