@@ -1,22 +1,49 @@
-## Reference checking program
+## Rif, reference checking program
 
-## Abstract
+## Caution
 
-~~This is not usable by any means. This is merely a chunk of pseudocode at a current status.~~
 I completed all the features that was planned. However I haven't tested enough
 to ensure this program works as intended. I'm currently dog fooding this
 program and fixing known bugs. If you want to use stable version, then you may
 have to wait.
 
+## About rif
+
 Rif checks corelation between files and decide whether the files are stale or
 fresh. You can use this program or library(yet to come) when you need
-to make sure all files are up to date while the files refer multiple other
+to make sure all files are up to date when files refer multiple other
 files.
 
-This is a project derived from my project called gesign. Gesign is a
-independent editor thus not so versatile and somewhat clunky to use with other programs. On the other
-side, rif aims to make file references check easily attachable and cross
-platform by default.
+This is a project derived from my project called gesign. Gesign was a
+independent editor thus not so versatile and somewhat clunky to use with other
+programs. On the other side, rif aims to make a file references checking easily
+attachable and cross platform by default.
+
+## Basic workflow
+
+Rif aims to help designers to track document changes. Especially when the
+documents are highly modular and interconnected. A generic usage is game design
+documents.
+
+Designer can add a file to rif project and set references(children) to the
+file(parent). Whenever any child file changes, the parent file's status also
+changes. This process is manually checked by rif binary(at least for now).
+
+For example, 
+
+1. Create a new file called levelmanager.md and added it into the rif project
+1. Set "level.md" as a reference of "levelmanager.md"
+1. Update level.md's content
+1. Levelmanager.md's status gets updated to stale
+1. Update levelmanager.md's content
+1. Levelmanager.md's status gets updated to "up to date"
+
+In this case levelmanager depends on the level because level's change can
+affect a behaviour of level manager. Thus change of level's content makes level
+manager's status to stale which informs a designer to manually reassure if level
+manager's content should be updated or not. After designer applys proper
+modification, levelmanager's status gets updated. In this way, designer can
+minimize logical errors derived from unnoticed file relationships.
 
 ## Usage
 
@@ -26,6 +53,7 @@ platform by default.
 
 # Create new .rif file in current working directory
 rif new
+	-d --default : Create default .rifignore 
 
 # Show current status of the rif file
 rif status 
@@ -82,8 +110,8 @@ rif sanity
 
 ```bash
 
-# Initiate rif
-rif new
+# Initiate rif project with default .rifginoe file
+rif new -d
 
 # Add all files in current project directory
 rif add . 
@@ -92,20 +120,27 @@ rif add .
 rif check -u
 
 # Update a file's tracking status without actually modifying file + 
-# check after update is executed
+# automatcially check rif files after update 
 rif update -fc
 
-# Show file status of only the given file
-rif list <File Name>
+# Show whole rif tree without cutting anything
+rif list -d 0
 
 ```
 
-## How it works
+## Build method
 
-To be updated
+Make sure rust langauge is installed. [Link](https://www.rust-lang.org/tools/install)
+```
+# Clone the repo
+git clone https://github.com/simhyeon/rif
+
+# And build with cargo, compiled binary is located in target/release
+cd rif && cargo run --release
+```
 
 ## Demo
 
-To be updated
+[Raw rif demo]()
 
 [Todos and Known Bugs](meta.md)
