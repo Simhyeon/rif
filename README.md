@@ -141,6 +141,6 @@ cd rif && cargo build --release
 
 ## Demo
 
-[Raw rif demo]()
+[Raw rif demo](https://www.youtube.com/watch?v=3XhPTz6Rm5w)
 
 [Todos and Known Bugs](meta.md)
