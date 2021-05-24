@@ -383,6 +383,7 @@ impl Cli {
     /// Check if `new` subcommand was given and parse subcommand options
     fn subcommand_new(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("new") {
+            std::fs::create_dir(RIF_DIECTORY)?;
             let new_rif_list = RifList::new();
             rif_io::save(new_rif_list)?;
             println!("Created new rif file in {}", std::env::current_dir()?.display());
