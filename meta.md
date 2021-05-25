@@ -7,6 +7,9 @@ Branch: New features
 	* [x] Add update message, 
 	* [ ] Add update hook so that user can configure automatic behaviour on update.
 
+Branch: Config
+	* [ ] Create rif config
+
 * [ ] Testing
 * [ ] Consider using sanity check "after" every cli operation
 
