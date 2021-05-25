@@ -220,6 +220,12 @@ impl RifList {
     pub fn update_filestamp(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
         if file_path.exists() {
             if let Some(file) = self.files.get_mut(file_path) {
+                // If file is not modified, it should not proceed
+                let system_time = utils::get_file_unix_time(file_path)?;
+                if file.last_modified >= system_time {
+                    return Err(RifError::UpdateError(String::from("File is not modified, use (-f or --force) option to force update a file")));
+                }
+
                 let unix_time = utils::get_file_unix_time(file_path)?;
                 file.timestamp = unix_time; 
                 file.last_modified = unix_time;
