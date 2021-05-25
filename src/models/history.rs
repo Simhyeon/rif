@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 use crate::consts::*;
 use crate::models::rif_error::RifError;
+use crate::models::config::Config;
 
 /// Struct history of rif update messags
 ///
@@ -34,14 +35,26 @@ impl History {
 
     /// Add new history
     ///
+    /// After history's length go over config's capacity it automatically removes old update messages
     /// # Args
     ///
     /// * `path` - Target file name
     /// * `msg` - Message to add
-    pub fn add_history(&mut self, path: &PathBuf, msg: &str) -> Result<(), RifError> {
-        // Wehter history already exists or not
+    pub fn add_history(&mut self, path: &PathBuf, msg: &str, config: &Config) -> Result<(), RifError> {
+        // Whether history already exists or not
         if let Some(unit) = self.hist_map.get_mut(path) {
-            unit.push(msg.to_owned());
+            if config.histoy_capacity != 0 {
+                unit.push(msg.to_owned());
+            } else {
+                return Err(RifError::ConfigError(String::from("Update message is not added because capacity is 0")));
+            }
+
+            while unit.len() > config.histoy_capacity {
+                println!("Removing LEN : {} CAP : {}", unit.len(), config.histoy_capacity);
+                // NOTE ::: Not so sure if this is really efficient than simple remove(0)
+                unit.rotate_left(1);
+                unit.pop();
+            }
         } else {
             self.hist_map.insert(path.to_path_buf(), vec![msg.to_owned()]);
         }
