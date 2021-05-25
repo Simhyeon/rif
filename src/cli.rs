@@ -7,6 +7,7 @@ use crate::checker::Checker;
 use crate::consts::*;
 use crate::fileio::{rif_io, etc_io};
 use crate::models::{ 
+    config::Config,
     history::History,
     rif_error::RifError, 
     rif_list::RifList,
@@ -307,7 +308,7 @@ impl Cli {
 
                     if let Some(msg) = sub_match.value_of("message") {
                         let mut history = History::read_from_file()?;
-                        history.add_history(&path, msg)?;
+                        history.add_history(&path, msg, &Config::read_from_file()?)?;
                         history.save_to_file()?;
                     }
                 }
@@ -409,6 +410,9 @@ impl Cli {
             // Rif history
             let new_rif_history = History::new();
             new_rif_history.save_to_file()?;
+            // Rif Config
+            let new_config = Config::new();
+            new_config.save_to_file()?;
             // User feedback
             println!("Initiated rif project");
 
