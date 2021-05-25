@@ -6,10 +6,10 @@ use clap::clap_app;
 use crate::checker::Checker;
 use crate::consts::*;
 use crate::fileio::{rif_io, etc_io};
-use crate::history::History;
 use crate::models::{ 
+    history::History,
     rif_error::RifError, 
-    rif_list::RifList 
+    rif_list::RifList,
 };
 use crate::utils::{self, LoopBranch};
 
