@@ -67,12 +67,30 @@ impl RifList {
         file_output
     }
 
+    /// Print a single file's relation 
+    ///
+    /// # Args
+    ///
+    /// * `path` - File name to print 
+    /// * `depth` - Desired depth value to display
+    pub fn display_file_depth(&self, path: &PathBuf, depth: u8) -> Result<(), RifError> {
+        if let Some(single_file) = self.files.get(path) {
+            print!("> {} {}\n", path.to_str().unwrap().green(), single_file.status);
+            if single_file.references.len() != 0 && depth != 1 {
+                self.display_file_recursive(&path, std::cmp::max(1, depth) - 1, 1)?;
+            }
+            Ok(())
+        } else {
+            Err(RifError::GetFail(format!("Failed to get file with given path : {}", path.display())))
+        }
+    }
+
     /// Print rif relation tree with given nested level
     ///
     /// # Args
     ///
     /// * `depth` - Desired depth value to display
-    pub fn display_file_depth(&self, depth: u8) -> Result<(), RifError> {
+    pub fn display_depth(&self, depth: u8) -> Result<(), RifError> {
         for path in self.files.keys().cloned().sorted() {
             // This should always work theoritically
             let single_file = self.files.get(&path).unwrap();
