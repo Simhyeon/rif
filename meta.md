@@ -2,6 +2,8 @@
 
 ### Imminent
 
+* [ ] Update should fail on non modified file without force option
+
 Branch: New features
 * [ ] Add new features
 	* [x] Add update message, 
