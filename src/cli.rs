@@ -6,6 +6,7 @@ use clap::clap_app;
 use crate::checker::Checker;
 use crate::consts::*;
 use crate::fileio::{rif_io, etc_io};
+use crate::history::History;
 use crate::models::{ 
     rif_error::RifError, 
     rif_list::RifList 
@@ -81,6 +82,7 @@ impl Cli {
                 (@arg FILE: +required "File to update")
                 (@arg force: -f --force "Force update on file")
                 (@arg check: -c --check "Check after update")
+                (@arg message: -m --message +takes_value conflicts_with[force] "Message to add in update")
             )
             (@subcommand discard =>
                 (about: "Discard file changes")
@@ -302,6 +304,12 @@ impl Cli {
                     rif_list.update_filestamp_force(&path)?;
                 } else {
                     rif_list.update_filestamp(&path)?;
+
+                    if let Some(msg) = sub_match.value_of("message") {
+                        let mut history = History::read_from_file()?;
+                        history.add_history(&path, msg)?;
+                        history.save_to_file()?;
+                    }
                 }
                 println!("Updated file: {}", file);
 
@@ -344,11 +352,20 @@ impl Cli {
             // If list command was given file argument, 
             // then print only the item not the whole list
             if let Some(file) = sub_match.value_of("FILE") {
-                println!("\n{}", rif_list.display_file(&PathBuf::from(file)));
+                let path = PathBuf::from(file);
+
+                // Print relation tree
+                rif_list.display_file_depth(&path, 0)?;
+
+                // Also print update 
+                println!("\n# History : ");
+                let rif_history = History::read_from_file()?;
+                rif_history.print_history(&path)?;
+
                 return Ok(());
             } else if let Some(depth) = sub_match.value_of("depth") {
                 if let Ok(depth) = depth.parse::<u8>() {
-                    rif_list.display_file_depth(depth)?;
+                    rif_list.display_depth(depth)?;
                 } else {
                     return Err(RifError::Ext(String::from("Failed to parse depth because is is either not unsinged integer or invalid number")));
                 }
@@ -383,10 +400,17 @@ impl Cli {
     /// Check if `new` subcommand was given and parse subcommand options
     fn subcommand_new(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("new") {
+            // Root directory
             std::fs::create_dir(RIF_DIECTORY)?;
+
+            // Rif List (Named as )
             let new_rif_list = RifList::new();
             rif_io::save(new_rif_list)?;
-            println!("Created new rif file in {}", std::env::current_dir()?.display());
+            // Rif history
+            let new_rif_history = History::new();
+            new_rif_history.save_to_file()?;
+            // User feedback
+            println!("Initiated rif project");
 
             if sub_match.is_present("default") {
                 std::fs::write(".rifignore", "target
