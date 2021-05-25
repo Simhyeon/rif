@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum RifError {
     AddFail(String),
+    UpdateError(String),
     CheckerError(String),
     CliError(String),
     Ext(String),
@@ -16,6 +17,7 @@ impl std::fmt::Display for RifError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RifError::AddFail(content) => write!(f, "{}", content),
+            RifError::UpdateError(content) => write!(f, "{}", content),
             RifError::CheckerError(content) => write!(f, "{}", content),
             RifError::CliError(content) => write!(f, "{}", content),
             RifError::Ext(content) => write!(f, "{}", content),
