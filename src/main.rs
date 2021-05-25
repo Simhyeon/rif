@@ -4,6 +4,7 @@ mod consts;
 mod fileio;
 mod models;
 mod utils;
+mod history;
 
 use cli::Cli;
 use models::rif_error::RifError;
