@@ -2,15 +2,13 @@
 
 ### Imminent
 
-Branch: rif-directory
-* [ ] Migrate from .rif file into .rif directory
-This extension of functionality such as history, update hook or something like watch update relatively easy to implement without losing performance. Though current state of optimization is somewhat alreaydy mediocre though.
+Branch: New features
 * [ ] Add new features
-	* [ ] Add feature "update_cache" to .rif file, which stores all updated files list in separate file or struct.
-	* [ ] Add update message, which is similar to git commit message but set default update message to modified time
+	* [x] Add update message, 
 	* [ ] Add update hook so that user can configure automatic behaviour on update.
 
 * [ ] Testing
+* [ ] Consider using sanity check "after" every cli operation
 
 ### Done
 
@@ -99,7 +97,10 @@ Branch: documentation
 * [x] Add depth option for list subcommand
 Currently only direct descendant is shown but it is not always helpful for users. Add depth option so that user can view all file relation tree in cost of performance.
 * [x] Rename file method and command line option
-* [ ] Consider using sanity check "after" every cli operation
+
+Branch: rif-directory
+* [x] Migrate from .rif file into .rif directory
+This extension of functionality such as history, update hook or something like watch update relatively easy to implement without losing performance. Though current state of optimization is somewhat alreaydy mediocre though.
 
 ### Later
 
