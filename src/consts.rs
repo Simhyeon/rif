@@ -6,3 +6,5 @@ pub const RIF_IGNORE_FILE: &str = ".rifignore";
 pub const RIF_LIST_FILE: &str = ".rif/info";
 /// Main rif directory
 pub const RIF_DIECTORY: &str = ".rif";
+/// Update messages
+pub const RIF_UPDATE_HISTORY: &str = ".rif/update_history";
