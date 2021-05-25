@@ -95,6 +95,7 @@ rif discard <FILE>
 rif update <FILE>
 	-f --force : force update even if file is not modified
 	-c --check : auto check after update
+	-m --message <msg> : message to include in history
 
 # Check file corelation
 rif check

@@ -2,7 +2,8 @@
 
 ### Imminent
 
-* [ ] Update should fail on non modified file without force option
+Branch: New subcommand
+* [ ] Enalbe config change with subcommand
 
 Branch: New features
 * [ ] Add new features
@@ -18,6 +19,7 @@ Branch: Config
 	    * [ ] Argument options(Which argument to pass)
 		e.g. Only get fresh vector, only get stale vector, get json struct
     * [ ] Set --check flag for update command as default
+	* [ ] Add git integration
 
 * [ ] Testing
 * [ ] Consider using sanity check "after" every cli operation
@@ -133,3 +135,4 @@ This was because child was self-referencing and i didn't made such diversion to 
 * [x] Add node method is checker struct doesn't add children to node map
 * [x] .rifignore is not properly applied on directories
 * [x] Sanity fix doesn't fix non existent path error
+* [x] Update should fail on non modified file without force option but it doesn't
