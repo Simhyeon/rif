@@ -8,3 +8,5 @@ pub const RIF_LIST_FILE: &str = ".rif/info";
 pub const RIF_DIECTORY: &str = ".rif";
 /// Update messages
 pub const RIF_UPDATE_HISTORY: &str = ".rif/update_history";
+/// Config
+pub const RIF_CONFIG: &str = ".rif/config";
