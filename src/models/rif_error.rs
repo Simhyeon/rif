@@ -9,6 +9,7 @@ pub enum RifError {
     IoError(std::io::Error),
     RifIoError(String),
     SerdeError(serde_json::Error),
+    ConfigError(String),
 }
 
 impl std::fmt::Display for RifError {
@@ -23,6 +24,7 @@ impl std::fmt::Display for RifError {
             RifError::IoError(content) => write!(f, "{}", content),
             RifError::RifIoError(content) => write!(f, "{}", content),
             RifError::SerdeError(content) => write!(f, "{}", content),
+            RifError::ConfigError(content) => write!(f, "{}", content),
         }
     }
 }
