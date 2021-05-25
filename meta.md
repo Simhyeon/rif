@@ -8,7 +8,14 @@ Branch: New features
 	* [ ] Add update hook so that user can configure automatic behaviour on update.
 
 Branch: Config
-	* [ ] Create rif config
+* [ ] Create rif config
+    * [ ] History Capacity
+	* [ ] Update Hook
+	    * [ ] Check hook status
+	    * [ ] Check hook script 
+	    * [ ] Argument options(Which argument to pass)
+		e.g. Only get fresh vector, only get stale vector, get json struct
+    * [ ] Set --check flag for update command as default
 
 * [ ] Testing
 * [ ] Consider using sanity check "after" every cli operation
@@ -114,6 +121,8 @@ This extension of functionality such as history, update hook or something like w
 
 #### Path sanity
 Currently path sanity and directory recursion logics are all based on the fact that command execution can be and only be done on the directory where .rif file dwells (Heavilty using std::env::current_dir method and return Err when there is no rif file in cwd). This is fine for now however it might be problematic when I enable rif to execute command on nested directories.
+
+Thus, consider use std::fs::canonicalize for every path related operations.
 
 ### Known Bugs
 
