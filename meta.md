@@ -11,7 +11,7 @@ Branch: New features
 
 Branch: Config
 * [ ] Create rif config
-    * [ ] History Capacity
+    * [x] History Capacity
 	* [ ] Update Hook
 	    * [ ] Check hook status
 	    * [ ] Check hook script 
