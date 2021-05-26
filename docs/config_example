@@ -1,0 +1,8 @@
+{
+  "histoy_capacity": 10,
+  "hook": {
+    "trigger": true,
+    "hook_command": "./example_print_stale.sh",
+    "hook_argument": "Stale"
+  }
+}

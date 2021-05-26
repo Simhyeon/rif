@@ -142,6 +142,8 @@ You can set several config options. I'm planning to add more config options. Con
     -hook command : Process name to trigger
 	-hook argument : Argument type that should be passed to process. It should be one of among "All, None, Fresh, Stale"
 
+[Example](./docs/config_example)
+
 ## Build method
 
 Make sure rust langauge is installed. [Link](https://www.rust-lang.org/tools/install)
@@ -157,4 +159,4 @@ cd rif && cargo build --release
 
 [Raw rif demo](https://www.youtube.com/watch?v=3XhPTz6Rm5w)
 
-[Todos and Known Bugs](meta.md)
+[Todos and Known Bugs](./docs/meta.md)
