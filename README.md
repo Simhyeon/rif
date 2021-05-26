@@ -117,17 +117,30 @@ rif new -d
 # Add all files in current project directory
 rif add . 
 
+# Update a file with update message
+rif update <FILE> -m "This is important update"
+
 # Check file corelation after automatcially updating all modified files
 rif check -u
 
 # Update a file's tracking status without actually modifying file + 
 # automatcially check rif files after update 
-rif update -fc
+rif update <FILE> -fc
 
 # Show whole rif tree without cutting anything
 rif list -d 0
 
 ```
+
+## Config
+
+You can set several config options. I'm planning to add more config options. Config file is located inc "$PWD/.rif/config".
+
+- histoy capacity : Maximum lines of history. Default is 30
+- hook 
+	-trigger: Whether trigger hook process after check command
+    -hook command : Process name to trigger
+	-hook argument : Argument type that should be passed to process. It should be one of among "All, None, Fresh, Stale"
 
 ## Build method
 
