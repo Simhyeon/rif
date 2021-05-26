@@ -22,7 +22,7 @@ pub enum RefStatus {
 ///
 /// Fresh means a file is up to date
 /// while stale means referencing file has been updated and the file has not.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Copy)]
 pub enum FileStatus {
     Fresh,
     Neutral, // Reserved for future usages. Might be deleted after all.
@@ -37,4 +37,12 @@ impl std::fmt::Display for FileStatus {
             FileStatus::Neutral => write!(f, "{}", "[Neutral]".green()),
         }
     }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum HookArgument {
+    Stale,
+    Fresh,
+    All,
+    None
 }
