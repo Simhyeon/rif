@@ -121,13 +121,17 @@ impl Checker {
     ///
     /// This method check files' relation with references and set file' status according to referencing files' statues.
     /// If referencing file is newer than a parent file or is stale, the parent becomes stale.
+    /// # Return value
+    /// This return vector of tuples (FileStatus, FilePath) which is used by hook trigger
+    ///
     /// # Args
     /// * `rif_list` - Target rif list to check references
-    pub fn check(&mut self, rif_list: &mut RifList) -> Result<(), RifError> {
+    pub fn check(&mut self, rif_list: &mut RifList) -> Result<Vec<(FileStatus, PathBuf)>, RifError> {
         // 1. Sort lists
         // 2. and compare children's references
         // 3. Also check filestamp 
         let sorted = self.get_sorted_vec();
+        let mut changed_files: Vec<(FileStatus, PathBuf)> = Vec::new();
 
         for target_key in sorted.iter() {
             // New file status that will be set to the 'item'
@@ -167,6 +171,8 @@ impl Checker {
                 // Print status changes into stdout
                 if file.status != status {
                     println!("Status update \"{}\" {} -> {}", target_key.display().to_string().green(), file.status, status);
+                    // Add file to changed files
+                    changed_files.push((status, target_key.to_path_buf()));
                 }
                 file.status = status;
             } else {
@@ -174,7 +180,7 @@ impl Checker {
             }
         } // for loop end
 
-        Ok(())
+        Ok(changed_files)
     }
 
     /// Get sorted keys by level from node map
