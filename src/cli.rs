@@ -6,6 +6,7 @@ use clap::clap_app;
 use crate::checker::Checker;
 use crate::consts::*;
 use crate::fileio::{rif_io, etc_io};
+use crate::hook::Hook;
 use crate::models::{ 
     config::Config,
     history::History,
@@ -316,8 +317,14 @@ impl Cli {
 
                 if sub_match.is_present("check") {
                     let mut checker = Checker::with_rif_list(&rif_list)?;
-                    checker.check(&mut rif_list)?;
+                    let changed_files = checker.check(&mut rif_list)?;
                     println!("Rif check complete");
+
+                    if changed_files.len() != 0 {
+                        println!("\n///Hook Output///");
+                        let config = Config::read_from_file()?;
+                        Hook::new(config.hook).execute(changed_files)?;
+                    }
                 }
 
                 rif_io::save(rif_list)?;
@@ -391,9 +398,15 @@ impl Cli {
             }
 
             let mut checker = Checker::with_rif_list(&rif_list)?;
-            checker.check(&mut rif_list)?;
+            let changed_files = checker.check(&mut rif_list)?;
             rif_io::save(rif_list)?;
             println!("Rif check complete");
+
+            if changed_files.len() != 0 {
+                println!("\n///Hook Output///");
+                let config = Config::read_from_file()?;
+                Hook::new(config.hook).execute(changed_files)?;
+            }
         } 
         Ok(())
     }
@@ -401,6 +414,9 @@ impl Cli {
     /// Check if `new` subcommand was given and parse subcommand options
     fn subcommand_new(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("new") {
+            if PathBuf::from(RIF_DIECTORY).exists() {
+                return Err(RifError::RifIoError(String::from("Directory is already initiated")));
+            }
             // Root directory
             std::fs::create_dir(RIF_DIECTORY)?;
 
