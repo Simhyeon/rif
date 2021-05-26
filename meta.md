@@ -5,19 +5,10 @@
 Branch: New subcommand
 * [ ] Enalbe config change with subcommand
 
-Branch: New features
-* [ ] Add new features
-	* [x] Add update message, 
-	* [ ] Add update hook so that user can configure automatic behaviour on update.
-
 Branch: Config
 * [ ] Create rif config
     * [x] History Capacity
-	* [ ] Update Hook
-	    * [ ] Check hook status
-	    * [ ] Check hook script 
-	    * [ ] Argument options(Which argument to pass)
-		e.g. Only get fresh vector, only get stale vector, get json struct
+	* [x] Update Hook
     * [ ] Set --check flag for update command as default
 	* [ ] Add git integration
 
@@ -116,6 +107,11 @@ Branch: rif-directory
 * [x] Migrate from .rif file into .rif directory
 This extension of functionality such as history, update hook or something like watch update relatively easy to implement without losing performance. Though current state of optimization is somewhat alreaydy mediocre though.
 
+Branch: New features
+* [x] Add new features
+	* [x] Add update message, 
+	* [x] Add update hook so that user can configure automatic behaviour on update.
+
 ### Later
 
 * [ ] Export rif as library
@@ -136,3 +132,4 @@ This was because child was self-referencing and i didn't made such diversion to 
 * [x] .rifignore is not properly applied on directories
 * [x] Sanity fix doesn't fix non existent path error
 * [x] Update should fail on non modified file without force option but it doesn't
+* [x] update --check method doesn't trigger hook method
