@@ -624,4 +624,28 @@ impl RifList {
 
         Ok(())
     }
+
+    pub fn find_depends(&self, target_path: &PathBuf) -> Result<Vec<PathBuf>, RifError> {
+        let mut depends = Vec::new();
+
+        let mut next = Vec::new();
+        next.push(target_path.clone());
+        let mut first = next.pop();
+
+        //println!("{}", first.clone().unwrap().display());
+
+        while let Some(path) = &mut first {
+            depends.push(path.clone());
+            for (parent_path , single_file ) in self.files.iter() {
+                if let Some(_) = single_file.references.get(path) {
+                    next.push(parent_path.clone());
+                }
+            }
+            first = next.pop();
+        }
+
+        depends.retain(|path| path != target_path);
+
+        Ok(depends)
+    }
 }
