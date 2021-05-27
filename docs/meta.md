@@ -14,6 +14,10 @@ Branch: Config
     * [ ] Set --check flag for update command as default
 	* [ ] Add git integration
 
+Branch: Json formatting
+	* [ ] Export rif project into single json format
+	* [ ] Export single file into json format
+
 * [ ] Testing
 * [ ] Consider using sanity check "after" every cli operation
 
