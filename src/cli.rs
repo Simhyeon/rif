@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::fs::metadata;
 use std::path::PathBuf;
 
+use colored::*;
 use clap::clap_app;
 use crate::checker::Checker;
 use crate::consts::*;
@@ -42,6 +43,7 @@ impl Cli {
         Cli::subcommand_check(args)?;
         Cli::subcommand_sanity(args)?;
         Cli::subcommand_status(args)?;
+        Cli::subcommand_depend(args)?;
         Ok(())
     }
 
@@ -59,6 +61,10 @@ impl Cli {
                 (@arg FILE: ... +required "File to add")
                 (@arg set: ... -s --set +takes_value "Files to add reference to")
                 (@arg batch: -b --batch "Batch set references to all files given as arguments")
+            )
+            (@subcommand depend =>
+                (about: "Find files that depend on the file")
+                (@arg FILE: ... +required "File to find dependencies")
             )
             (@subcommand remove =>
                 (about: "Remove file from rif")
@@ -487,6 +493,22 @@ target
                 print!("{}", rif_list);
             }
         } 
+        Ok(())
+    }
+    
+    fn subcommand_depend(matches: &clap::ArgMatches) -> Result<(), RifError> {
+        if let Some(sub_match) = matches.subcommand_matches("depend") {
+            if let Some(file) = sub_match.value_of("FILE") {
+                let rif_list = rif_io::read()?;
+                let dependes = rif_list.find_depends(&PathBuf::from(file))?;
+                println!("Files that depends on \"{}\"", file);
+                println!("=====");
+                for item in dependes {
+                    println!("{}", item.display().to_string().green());
+                }
+            }
+        }
+
         Ok(())
     }
 }
