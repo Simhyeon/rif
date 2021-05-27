@@ -3,6 +3,8 @@
 ### Imminent
 
 Branch: New subcommand
+* [ ] Depend subcommand -> Show what files depends on target file
+* [ ] Refs subcommand -> Show references of target file
 * [ ] Enalbe config change with subcommand
 
 Branch: Config
