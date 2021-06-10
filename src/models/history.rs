@@ -8,7 +8,7 @@ use crate::models::config::Config;
 /// Struct history of rif update messags
 ///
 /// Hisotry stores vector of messages thus can be very large theoritically
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct History {
     hist_map : HashMap::<PathBuf, Vec<String>>,
 }

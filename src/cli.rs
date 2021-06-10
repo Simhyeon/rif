@@ -44,6 +44,7 @@ impl Cli {
         Cli::subcommand_sanity(args)?;
         Cli::subcommand_status(args)?;
         Cli::subcommand_depend(args)?;
+        Cli::subcommand_data(args)?;
         Ok(())
     }
 
@@ -61,6 +62,11 @@ impl Cli {
                 (@arg FILE: ... +required "File to add")
                 (@arg set: ... -s --set +takes_value "Files to add reference to")
                 (@arg batch: -b --batch "Batch set references to all files given as arguments")
+            )
+            (@subcommand data =>
+                (about: "Print data as json format")
+                (@arg TYPE: "Type of data to print, default is rif. Available options : <history>")
+                (@arg compact: -c --compact "Print compact json without formatting")
             )
             (@subcommand depend =>
                 (about: "Find files that depend on the file")
@@ -505,6 +511,29 @@ target
                 println!("=====");
                 for item in dependes {
                     println!("{}", item.display().to_string().green());
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn subcommand_data(matches: &clap::ArgMatches) -> Result<(), RifError> {
+        if let Some(sub_match) = matches.subcommand_matches("data") {
+            if let Some(file) = sub_match.value_of("TYPE") {
+                match file {
+                    "history" => {
+                        let rif_history = History::read_from_file()?;
+                        println!("{:#?}", rif_history);
+                    }
+                    _ => () // This doesn't happen
+                }
+            } else {
+                let rif_list = rif_io::read()?;
+                if sub_match.is_present("compact") {
+                    println!("{:?}", rif_list);
+                } else {
+                    println!("{:#?}", rif_list);
                 }
             }
         }
