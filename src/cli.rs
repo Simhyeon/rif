@@ -468,10 +468,11 @@ target
             if sub_match.is_present("fix") {
                 raw_rif_list.sanity_fix()?;
                 rif_io::save(raw_rif_list)?;
+                println!("Sucessfully fixed the rif file");
             } else {
                 raw_rif_list.sanity_check()?;
+                println!("Sucessfully checked the rif file");
             }
-            println!("Sucessfully fixed rif file");
         } 
         Ok(())
     }

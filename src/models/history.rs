@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use crate::consts::*;
 use crate::models::rif_error::RifError;
 use crate::models::config::Config;
+use colored::*;
 
 /// Struct history of rif update messags
 ///
@@ -71,11 +72,16 @@ impl History {
         if let Some(hist) = self.hist_map.get(path) {
             // Iterator should be reverse to print the newest first.
             for item in hist.iter().rev() {
-                println!("  ^ {}", item);
+                println!("  | {}", item);
             }
-            Ok(())
-        } else {
-            Err(RifError::GetFail(format!("Failed get histroy with given path : {}", path.display())))
         }
+        else {
+            println!("{}", "  No history".red());
+            // REF
+            // No history was considered error before, however I don't think it should be
+            //Err(RifError::GetFail(format!("Failed get histroy with given path : {}", path.display())))
+        }
+        
+        Ok(())
     }
 }
