@@ -192,6 +192,11 @@ impl RifList {
             return Err(RifError::RifIoError(format!("\"{}\" doesn't exit", new_name.display())));
         }
 
+        // New name already exists in files
+        if let Some(_) = self.files.get(new_name) {
+            return Err(RifError::RenameFail(format!("Rename target: \"{}\" already exists", new_name.display())));
+        }
+
         if let Some(mut value) = self.files.remove(file_path) {
             // Update to new name
             value.update_name(new_name);
