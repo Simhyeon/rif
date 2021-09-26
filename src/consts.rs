@@ -3,10 +3,10 @@ pub const BLACK_LIST: [&str; 2] = [RIF_IGNORE_FILE, RIF_DIECTORY];
 /// File path of rif ignore
 pub const RIF_IGNORE_FILE: &str = ".rifignore";
 /// File path of rif list 
-pub const RIF_LIST_FILE: &str = ".rif/info";
+pub const RIF_REL_FILE: &str = ".rif/rel";
 /// Main rif directory
 pub const RIF_DIECTORY: &str = ".rif";
 /// Update messages
-pub const RIF_UPDATE_HISTORY: &str = ".rif/update_history";
+pub const RIF_HIST_FILE: &str = ".rif/history";
 /// Config
 pub const RIF_CONFIG: &str = ".rif/config";
