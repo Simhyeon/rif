@@ -1,14 +1,5 @@
-mod checker;
-mod cli;
-mod consts;
-mod fileio;
-mod models;
-mod utils;
-mod hook;
-
-use cli::Cli;
-use models::rif_error::RifError;
-use colored::*;
+use rif::cli::Cli;
+use rif::models::rif_error::RifError;
 
 fn main() -> Result<(), RifError> {
 
