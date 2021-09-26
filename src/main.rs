@@ -1,5 +1,5 @@
 use rif::cli::Cli;
-use rif::models::rif_error::RifError;
+use rif::RifError;
 
 fn main() -> Result<(), RifError> {
 
