@@ -6,8 +6,8 @@ use crate::models::rif_error::RifError;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config{ 
-    pub histoy_capacity: usize,
     pub hook: HookConfig,
+    pub git_ignore: bool,
     // Set check after update, or --check flag as default
 }
 
@@ -21,12 +21,12 @@ pub struct HookConfig {
 impl Config {
     pub fn new() -> Self {
         Self {
-            histoy_capacity: 30,
             hook : HookConfig {
                 trigger: false,
                 hook_command: None,
                 hook_argument: HookArgument::None,
             },
+            git_ignore: false,
         }
     }
 
