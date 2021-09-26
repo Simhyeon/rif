@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::fs::metadata;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 use colored::*;
 use clap::clap_app;
@@ -31,7 +31,7 @@ impl Cli {
     /// # Args
     /// * `args` - parsed arguments
     fn parse_subcommands(args: &clap::ArgMatches) -> Result<(), RifError> {
-        Cli::subcommand_new(args)?;
+        Cli::subcommand_init(args)?;
         Cli::subcommand_add(args)?;
         Cli::subcommand_remove(args)?;
         Cli::subcommand_rename(args)?;
@@ -55,7 +55,7 @@ impl Cli {
         clap_app!(Rif =>
             (version: "0.0.1")
             (author: "Simon Creek <simoncreek@tutanota.com>")
-            (about: "Rif is a program to track file refernces")
+            (about: "Rif is a program to track impact of file changes")
             (@setting ArgRequiredElseHelp)
             (@subcommand add =>
                 (about: "Add file to rif")
@@ -110,8 +110,8 @@ impl Cli {
                 (about: "Check sanity of rif file")
                 (@arg fix: --fix "Fix rif sanity")
             )
-            (@subcommand new =>
-                (about: "Create a new rif file in current working directory")
+            (@subcommand init =>
+                (about: "Initiate working directory")
                 (@arg default: -d --default "Creates defult rifignore file")
             )
             (@subcommand status =>
@@ -140,7 +140,8 @@ impl Cli {
                     return Err(RifError::CliError(String::from("You need to give batch option <-b or --batch> for batch set of references")));
                 }
 
-                let black_list = etc_io::get_black_list()?;
+                let config = Config::read_from_file()?;
+                let black_list = etc_io::get_black_list(config.git_ignore)?;
                 let argc = files.len();
 
                 for file in files {
@@ -251,9 +252,21 @@ impl Cli {
         if let Some(sub_match) = matches.subcommand_matches("rename") {
             utils::check_rif_file()?;
 
+            // TODO
+            // Check this process
+            // Rename's target might already in rif_file
             if let Some(file) = sub_match.value_of("FILE") {
                 if let Some(new_name) = sub_match.value_of("NEWNAME") {
                     let mut raw_rif_list = rif_io::read_as_raw()?;
+                    if let Some(_) = raw_rif_list.files.get(&PathBuf::from(new_name)) {
+                        return Err(RifError::RenameFail(format!("Rename target: \"{}\" already exists", new_name)));
+                    }
+
+                    let file_path = Path::new(file);
+                    // Rename file if it exsits
+                    if file_path.exists() {
+                        std::fs::rename(file_path, new_name)?;
+                    }
                     raw_rif_list.rename_file(&PathBuf::from(file), &PathBuf::from(new_name))?;
                     rif_io::save(raw_rif_list)?;
                     println!("Sucessfully renamed \"{}\" to \"{}\"", file, new_name);
@@ -321,7 +334,7 @@ impl Cli {
 
                     if let Some(msg) = sub_match.value_of("message") {
                         let mut history = History::read_from_file()?;
-                        history.add_history(&path, msg, &Config::read_from_file()?)?;
+                        history.add_history(&path, msg)?;
                         history.save_to_file()?;
                     }
                 }
@@ -423,9 +436,9 @@ impl Cli {
         Ok(())
     }
 
-    /// Check if `new` subcommand was given and parse subcommand options
-    fn subcommand_new(matches: &clap::ArgMatches) -> Result<(), RifError> {
-        if let Some(sub_match) = matches.subcommand_matches("new") {
+    /// Check if `init` subcommand was given and parse subcommand options
+    fn subcommand_init(matches: &clap::ArgMatches) -> Result<(), RifError> {
+        if let Some(sub_match) = matches.subcommand_matches("init") {
             if PathBuf::from(RIF_DIECTORY).exists() {
                 return Err(RifError::RifIoError(String::from("Directory is already initiated")));
             }
@@ -488,9 +501,11 @@ target
 
             // Ignore untracked files
             if !sub_match.is_present("ignore") {
+
+                let config = Config::read_from_file()?;
                 // Default black list only includes .rif file for now
                 // Currently only check relative paths,or say, stripped path
-                let black_list = etc_io::get_black_list()?;
+                let black_list = etc_io::get_black_list(config.git_ignore)?;
                 println!("\n# Untracked files :");
                 rif_list.track_unregistered_files(&black_list)?;
             }
