@@ -1,7 +1,9 @@
 #[derive(Debug)]
 pub enum RifError {
+    BincodeError(bincode::Error),
     AddFail(String),
     UpdateError(String),
+    RenameFail(String),
     CheckerError(String),
     CliError(String),
     Ext(String),
@@ -16,7 +18,9 @@ pub enum RifError {
 impl std::fmt::Display for RifError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            RifError::BincodeError(content) => write!(f, "{}", content),
             RifError::AddFail(content) => write!(f, "{}", content),
+            RifError::RenameFail(content) => write!(f, "{}", content),
             RifError::UpdateError(content) => write!(f, "{}", content),
             RifError::CheckerError(content) => write!(f, "{}", content),
             RifError::CliError(content) => write!(f, "{}", content),
