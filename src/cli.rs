@@ -6,14 +6,8 @@ use colored::*;
 use clap::clap_app;
 use crate::checker::Checker;
 use crate::consts::*;
-use crate::fileio::{rif_io, etc_io};
-use crate::hook::Hook;
-use crate::models::{ 
-    config::Config,
-    history::History,
-    rif_error::RifError, 
-    rif_list::RifList,
-};
+use crate::rif::{hook::Hook, config::Config, history::History, rel::Relations};
+use crate::RifError;
 use crate::utils::{self, LoopBranch};
 
 /// Struct to parse command line arguments and execute proper operations
@@ -133,7 +127,7 @@ impl Cli {
             utils::check_rif_file()?;
 
             if let Some(files) = sub_match.values_of("FILE") {
-                let mut rif_list = rif_io::read()?;
+                let mut relations = Relations::read()?;
                 // Easily fallable mistake prevention
                 // When user is trying set multiple files references, user need to explicit
                 if files.len() > 1 && sub_match.is_present("set") && !sub_match.is_present("batch") {
@@ -141,7 +135,7 @@ impl Cli {
                 }
 
                 let config = Config::read_from_file()?;
-                let black_list = etc_io::get_black_list(config.git_ignore)?;
+                let black_list = utils::get_black_list(config.git_ignore)?;
                 let argc = files.len();
 
                 for file in files {
@@ -190,13 +184,13 @@ impl Cli {
                             }
                         }
 
-                        if !rif_list.add_file(&striped_path)? { return Ok(LoopBranch::Continue); }
+                        if !relations.add_file(&striped_path)? { return Ok(LoopBranch::Continue); }
                         println!("Added file: {}", &striped_path.display());
 
                         // Set option
                         if let Some(files) = sub_match.values_of("set") {
                             let set: HashSet<PathBuf> = files.map(|a| PathBuf::from(a)).collect();
-                            rif_list.add_reference(&striped_path, &set)?;
+                            relations.add_reference(&striped_path, &set)?;
                             println!("Added references to: {}", &striped_path.display());
                         }
 
@@ -211,18 +205,18 @@ impl Cli {
                         path = utils::relativize_path(&path)?;
 
                         // File was not added e.g. file already exists
-                        if !rif_list.add_file(&path)? { continue; }
+                        if !relations.add_file(&path)? { continue; }
                         println!("Added file: {}", path.display());
 
                         // Set option
                         if let Some(files) = sub_match.values_of("set") {
                             let set: HashSet<PathBuf> = files.map(|a| PathBuf::from(a)).collect();
-                            rif_list.add_reference(&path, &set)?;
+                            relations.add_reference(&path, &set)?;
                             println!("Added references to: {}", path.display());
                         }
                     }
                 } // for loop end
-                rif_io::save(rif_list)?;
+                Relations::save(relations)?;
             } 
         }  // if let end
         Ok(())
@@ -234,14 +228,14 @@ impl Cli {
             utils::check_rif_file()?;
 
             if let Some(files) = sub_match.values_of("FILE") {
-                let mut rif_list = rif_io::read()?;
+                let mut relations = Relations::read()?;
                 for file in files {
                     let path = PathBuf::from(file);
-                    if rif_list.remove_file(&path)? {
+                    if relations.remove_file(&path)? {
                         println!("Removed file: {}", file);
                     }
                 }
-                rif_io::save( rif_list)?;
+                Relations::save( relations)?;
             } 
         }
         Ok(())
@@ -257,8 +251,8 @@ impl Cli {
             // Rename's target might already in rif_file
             if let Some(file) = sub_match.value_of("FILE") {
                 if let Some(new_name) = sub_match.value_of("NEWNAME") {
-                    let mut raw_rif_list = rif_io::read_as_raw()?;
-                    if let Some(_) = raw_rif_list.files.get(&PathBuf::from(new_name)) {
+                    let mut raw_relations = Relations::read_as_raw()?;
+                    if let Some(_) = raw_relations.files.get(&PathBuf::from(new_name)) {
                         return Err(RifError::RenameFail(format!("Rename target: \"{}\" already exists", new_name)));
                     }
 
@@ -267,8 +261,8 @@ impl Cli {
                     if file_path.exists() {
                         std::fs::rename(file_path, new_name)?;
                     }
-                    raw_rif_list.rename_file(&PathBuf::from(file), &PathBuf::from(new_name))?;
-                    rif_io::save(raw_rif_list)?;
+                    raw_relations.rename_file(&PathBuf::from(file), &PathBuf::from(new_name))?;
+                    Relations::save(raw_relations)?;
                     println!("Sucessfully renamed \"{}\" to \"{}\"", file, new_name);
                 }
             } 
@@ -286,10 +280,10 @@ impl Cli {
                     let path = PathBuf::from(file);
                     let refs_vec: Vec<&str> = refs.collect();
                     let refs: HashSet<PathBuf> = refs_vec.iter().map(|a| PathBuf::from(a)).collect();
-                    let mut rif_list = rif_io::read()?;
+                    let mut relations = Relations::read()?;
 
-                    rif_list.add_reference(&path, &refs)?;
-                    rif_io::save(rif_list)?;
+                    relations.add_reference(&path, &refs)?;
+                    Relations::save(relations)?;
                     println!("Added references to: {}", file);
                 }
             } 
@@ -307,10 +301,10 @@ impl Cli {
                     let path = PathBuf::from(file);
                     let refs_vec: Vec<&str> = refs.collect();
                     let refs: HashSet<PathBuf> = refs_vec.iter().map(|a| PathBuf::from(a)).collect();
-                    let mut rif_list = rif_io::read()?;
+                    let mut relations = Relations::read()?;
 
-                    rif_list.remove_reference(&path, &refs)?;
-                    rif_io::save(rif_list)?;
+                    relations.remove_reference(&path, &refs)?;
+                    Relations::save(relations)?;
                     println!("Removed references from: {}", file);
                 }
             } 
@@ -325,12 +319,12 @@ impl Cli {
 
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
-                let mut rif_list = rif_io::read()?;
+                let mut relations = Relations::read()?;
 
                 if sub_match.is_present("force") {
-                    rif_list.update_filestamp_force(&path)?;
+                    relations.update_filestamp_force(&path)?;
                 } else {
-                    rif_list.update_filestamp(&path)?;
+                    relations.update_filestamp(&path)?;
 
                     if let Some(msg) = sub_match.value_of("message") {
                         let mut history = History::read_from_file()?;
@@ -341,8 +335,8 @@ impl Cli {
                 println!("Updated file: {}", file);
 
                 if sub_match.is_present("check") {
-                    let mut checker = Checker::with_rif_list(&rif_list)?;
-                    let changed_files = checker.check(&mut rif_list)?;
+                    let mut checker = Checker::with_relations(&relations)?;
+                    let changed_files = checker.check(&mut relations)?;
                     println!("Rif check complete");
 
                     if changed_files.len() != 0 {
@@ -352,7 +346,7 @@ impl Cli {
                     }
                 }
 
-                rif_io::save(rif_list)?;
+                Relations::save(relations)?;
             } 
         } 
         Ok(())
@@ -366,10 +360,10 @@ impl Cli {
 
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
-                let mut rif_list = rif_io::read()?;
+                let mut relations = Relations::read()?;
 
-                rif_list.discard_change(&path)?;
-                rif_io::save(rif_list)?;
+                relations.discard_change(&path)?;
+                Relations::save(relations)?;
                 println!("File modification ignored for file: {}", file);
             } 
         } 
@@ -381,14 +375,14 @@ impl Cli {
         if let Some(sub_match) = matches.subcommand_matches("list") {
             utils::check_rif_file()?;
 
-            let rif_list = rif_io::read()?;
+            let relations = Relations::read()?;
             // If list command was given file argument, 
             // then print only the item not the whole list
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
 
                 // Print relation tree
-                rif_list.display_file_depth(&path, 0)?;
+                relations.display_file_depth(&path, 0)?;
 
                 // Also print update 
                 println!("\n# History : ");
@@ -398,12 +392,12 @@ impl Cli {
                 return Ok(());
             } else if let Some(depth) = sub_match.value_of("depth") {
                 if let Ok(depth) = depth.parse::<u8>() {
-                    rif_list.display_depth(depth)?;
+                    relations.display_depth(depth)?;
                 } else {
                     return Err(RifError::Ext(String::from("Failed to parse depth because is is either not unsinged integer or invalid number")));
                 }
             } else {
-                print!("{}", rif_list);
+                print!("{}", relations);
             }
         } 
         Ok(())
@@ -413,18 +407,18 @@ impl Cli {
     fn subcommand_check(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("check") {
             utils::check_rif_file()?;
-            let mut rif_list = rif_io::read()?;
+            let mut relations = Relations::read()?;
 
             // Automatically update all files that has been modified
             if sub_match.is_present("update") {
-                for item in rif_list.get_modified_files()?.iter() {
-                    rif_list.update_filestamp(item)?;
+                for item in relations.get_modified_files()?.iter() {
+                    relations.update_filestamp(item)?;
                 }
             }
 
-            let mut checker = Checker::with_rif_list(&rif_list)?;
-            let changed_files = checker.check(&mut rif_list)?;
-            rif_io::save(rif_list)?;
+            let mut checker = Checker::with_relations(&relations)?;
+            let changed_files = checker.check(&mut relations)?;
+            Relations::save(relations)?;
             println!("Rif check complete");
 
             if changed_files.len() != 0 {
@@ -446,8 +440,8 @@ impl Cli {
             std::fs::create_dir(RIF_DIECTORY)?;
 
             // Rif List (Named as )
-            let new_rif_list = RifList::new();
-            rif_io::save(new_rif_list)?;
+            let new_relations = Relations::new();
+            Relations::save(new_relations)?;
             // Rif history
             let new_rif_history = History::new();
             new_rif_history.save_to_file()?;
@@ -476,14 +470,14 @@ target
             // NOTE ::: You don't have to manually call sanity check
             // Because read operation always check file sanity after reading a file
             // and return erros if sanity was not assured.
-            let mut raw_rif_list = rif_io::read_as_raw()?;
+            let mut raw_relations = Relations::read_as_raw()?;
 
             if sub_match.is_present("fix") {
-                raw_rif_list.sanity_fix()?;
-                rif_io::save(raw_rif_list)?;
+                raw_relations.sanity_fix()?;
+                Relations::save(raw_relations)?;
                 println!("Sucessfully fixed the rif file");
             } else {
-                raw_rif_list.sanity_check()?;
+                raw_relations.sanity_check()?;
                 println!("Sucessfully checked the rif file");
             }
         } 
@@ -495,9 +489,9 @@ target
         if let Some(sub_match) = matches.subcommand_matches("status") {
             utils::check_rif_file()?;
 
-            let rif_list = rif_io::read()?;
+            let relations = Relations::read()?;
             println!("# Modified files :");
-            rif_list.track_modified_files()?;
+            relations.track_modified_files()?;
 
             // Ignore untracked files
             if !sub_match.is_present("ignore") {
@@ -505,14 +499,14 @@ target
                 let config = Config::read_from_file()?;
                 // Default black list only includes .rif file for now
                 // Currently only check relative paths,or say, stripped path
-                let black_list = etc_io::get_black_list(config.git_ignore)?;
+                let black_list = utils::get_black_list(config.git_ignore)?;
                 println!("\n# Untracked files :");
-                rif_list.track_unregistered_files(&black_list)?;
+                relations.track_unregistered_files(&black_list)?;
             }
 
             if sub_match.is_present("verbose") {
                 println!("\n# Current rif status:\n---");
-                print!("{}", rif_list);
+                print!("{}", relations);
             }
         } 
         Ok(())
@@ -521,8 +515,8 @@ target
     fn subcommand_depend(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("depend") {
             if let Some(file) = sub_match.value_of("FILE") {
-                let rif_list = rif_io::read()?;
-                let dependes = rif_list.find_depends(&PathBuf::from(file))?;
+                let relations = Relations::read()?;
+                let dependes = relations.find_depends(&PathBuf::from(file))?;
                 println!("Files that depends on \"{}\"", file);
                 println!("=====");
                 for item in dependes {
@@ -545,11 +539,11 @@ target
                     _ => () // This doesn't happen
                 }
             } else {
-                let rif_list = rif_io::read()?;
+                let relations = Relations::read()?;
                 if sub_match.is_present("compact") {
-                    println!("{:?}", rif_list);
+                    println!("{:?}", relations);
                 } else {
-                    println!("{:#?}", rif_list);
+                    println!("{:#?}", relations);
                 }
             }
         }
