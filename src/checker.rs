@@ -2,11 +2,9 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use colored::*;
-use crate::models::{
-    enums::FileStatus, 
-    rif_error::RifError, 
-    rif_list::RifList
-};
+use crate::rif::rel::Relations;
+use crate::models::FileStatus;
+use crate::RifError;
 
 /// Default level of checker node
 const DEFAULT_LEVEL: i32 = 0;
@@ -51,7 +49,7 @@ impl Checker {
     ///
     /// # Args
     /// * `rif_list` - Rif list to make node map from
-    pub fn with_rif_list(rif_list: &RifList) -> Result<Self, RifError> {
+    pub fn with_relations(rif_list: &Relations) -> Result<Self, RifError> {
         let mut checker = Checker::new();
 
         for tuple in rif_list.files.iter() {
@@ -126,7 +124,7 @@ impl Checker {
     ///
     /// # Args
     /// * `rif_list` - Target rif list to check references
-    pub fn check(&mut self, rif_list: &mut RifList) -> Result<Vec<(FileStatus, PathBuf)>, RifError> {
+    pub fn check(&mut self, rif_list: &mut Relations) -> Result<Vec<(FileStatus, PathBuf)>, RifError> {
         // 1. Sort lists
         // 2. and compare children's references
         // 3. Also check filestamp 
