@@ -22,7 +22,7 @@ impl History {
     }
 
     /// Read history struct from a file
-    pub fn read_from_file(path: Option<&Path>) -> Result<Self, RifError> {
+    pub fn read_from_file(path: Option<impl AsRef<Path>>) -> Result<Self, RifError> {
         let path =utils::get_history_path(path)?;
         let result = bincode::deserialize::<Self>(&std::fs::read(path)?);
         match result {
@@ -36,7 +36,7 @@ impl History {
     }
 
     /// Save history struct into a file
-    pub fn save_to_file(&self, path: Option<&Path>) -> Result<(), RifError> {
+    pub fn save_to_file(&self, path: Option<impl AsRef<Path>>) -> Result<(), RifError> {
         let result = bincode::serialize(self);
         let path =utils::get_history_path(path)?;
         if let Err(err) = result {

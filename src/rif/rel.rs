@@ -7,7 +7,8 @@ use itertools::Itertools;
 use serde::{ Serialize, Deserialize };
 use crate::error::RifError;
 use crate::models::{ SanityType, RefStatus, FileStatus};
-use crate::utils::{self, LoopBranch};
+use crate::utils;
+use crate::models::LoopBranch;
 
 /// Relations is a struct that stores all information about rif 
 #[derive(Serialize, Deserialize, Debug)]
@@ -652,7 +653,7 @@ impl Relations {
         Ok(depends)
     }
     /// Read rif file and return rif list
-    pub fn read(path: Option<&Path>) -> Result<Relations, RifError> {
+    pub fn read_from_file(path: Option<impl AsRef<Path>>) -> Result<Relations, RifError> {
         let path = utils::get_rel_path(path)?;
         let result = bincode::deserialize::<Relations>(&std::fs::read(path)?);
         match result {
@@ -662,14 +663,14 @@ impl Relations {
     }
 
     /// Read rif file without sanity check
-    pub fn read_as_raw(path: Option<&Path>) -> Result<Relations, RifError> {
+    pub fn read_as_raw(path: Option<impl AsRef<Path>>) -> Result<Relations, RifError> {
         let path = utils::get_rel_path(path)?;
         let rif_list: Relations = serde_json::from_str(&std::fs::read_to_string(path)?)?;
         Ok(rif_list)
     }
 
     /// Save rif list into rif file
-    pub fn save(&self, path: Option<&Path>) -> Result<(), RifError> {
+    pub fn save_to_file(&self, path: Option<impl AsRef<Path>>) -> Result<(), RifError> {
         let result = bincode::serialize::<Relations>(self);
         let path = utils::get_rel_path(path)?;
         match result {
