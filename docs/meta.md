@@ -1,10 +1,32 @@
 ## TODO
 
+### Prepare for integration with gdengine
+
+* [ ] make Rif Struc that handls all operations
+
+* [ ] Enable add to add directory
+* [ ] Fresh tag is redundant, just remove it only show stale one 
+* [ ] Current workflow is not intuitive
+- rif add -> this is not git's add because it only add to structure while git's add add a new file and also update change
+- rif update
+- rif check
+- It is three steps compared to two steps in git
+
+- In my opinion, current add and update should be merged to same add function with --force option
+- And check is check
+* [ ] Add --depend option
+* [ ] Remove --set and --batch option for add subcommand for clarity
+- Argument as files that depend on added file
+* [ ] Make a library
+    * [ ] Ergonomic and useful exposed interface
+* [ ] Push to crates.io
+* [ ] Add git-ignore also respected by config
+- This needs testing
+
 ### Imminent
 
 Branch: New subcommand
 * [x] Depend subcommand -> Show what files depends on target file
-* [ ] Enalbe config change with subcommand
 
 Branch: Config
 * [ ] Create rif config
@@ -115,6 +137,17 @@ Branch: New features
 
 Branch: Json formatting
 	* [x] Export rif project into single json format
+
+* [x] Who though history capacity is a good idea? Remove it already
+* [x] Make commands much more ergonomic, in terms of familiarity
+- Make commands similar to that of git commands
+    * [x] Make rename really rename exsiting file not only name in rif tracker
+    * [x] Rename "new" command to init
+* [x] Make non user-frendly file as bincode
+- Because it will not be exposed anyway
+    * [x] Config and info file
+
+* [x] Rif command inside nested directory
 
 ### Later
 
