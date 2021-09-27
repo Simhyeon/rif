@@ -1,14 +1,13 @@
 use std::collections::HashSet;
-use std::fs::metadata;
 use std::path::{PathBuf, Path};
 
 use colored::*;
 use clap::clap_app;
 use crate::checker::Checker;
-use crate::consts::*;
 use crate::rif::{hook::Hook, config::Config, history::History, rel::Relations};
 use crate::RifError;
-use crate::utils::{self, LoopBranch};
+use crate::Rif;
+use crate::utils;
 
 /// Struct to parse command line arguments and execute proper operations
 pub struct Cli{}
@@ -54,8 +53,6 @@ impl Cli {
             (@subcommand add =>
                 (about: "Add file to rif")
                 (@arg FILE: ... +required "File to add")
-                (@arg set: ... -s --set +takes_value "Files to add reference to")
-                (@arg batch: -b --batch "Batch set references to all files given as arguments")
             )
             (@subcommand data =>
                 (about: "Print data as json format")
@@ -124,101 +121,12 @@ impl Cli {
     /// Check if `add` subcommand was given and parse subcommand options
     fn subcommand_add(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("add") {
-            let rif_path = utils::get_rif_directory()?;
-
             if let Some(files) = sub_match.values_of("FILE") {
-                let mut relations = Relations::read(Some(&rif_path))?;
-                // Easily fallable mistake prevention
-                // When user is trying set multiple files references, user need to explicit
-                if files.len() > 1 && sub_match.is_present("set") && !sub_match.is_present("batch") {
-                    return Err(RifError::CliError(String::from("You need to give batch option <-b or --batch> for batch set of references")));
-                }
-
-                let config = Config::read_from_file(Some(&rif_path))?;
-                let black_list = utils::get_black_list(config.git_ignore)?;
-                let argc = files.len();
-
-                for file in files {
-                    let mut path = PathBuf::from(file);
-
-                    // File is in rif ignore
-                    if let Some(_) = black_list.get(&path) {
-                        // If argument's count is 1 display specific logs
-                        // to help user to grasp what is happening
-                        if argc == 1 {
-                            // If File is not configurable
-                            // It's not allowed by the program
-                            // else it's allowd by the program 
-                            if BLACK_LIST.to_vec().contains(&file) {
-                                println!("File : \"{}\" is not allowed", file);
-                            } else {
-                                println!("\"{}\" is in rifignore file, which is ignored.", file)
-                            }
-                        }
-                        continue;
-                    }
-
-                    // If given value is "." which means that input value has not been expanded.
-                    // substitute with current working directory
-                    if path.to_str().unwrap() == "." {
-                        path = std::env::current_dir()?;
-                    } else {
-                        if path.is_dir() && argc == 1 {
-                            println!("Directory cannot be added to rif.");
-                        }
-                    }
-
-                    // Closure to recursively get inside directory and add files
-                    let mut closure = |entry_path : PathBuf| -> Result<LoopBranch, RifError> {
-                        let striped_path = utils::relativize_path(&entry_path)?;
-
-                        // Early return if file or directory is in black_list
-                        // Need to check the black_list once more because closure checks nested
-                        // directory that is not checked in outer for loop
-                        if let Some(_) = black_list.get(&striped_path) {
-                            if striped_path.is_dir() {
-                                return Ok(LoopBranch::Exit);
-                            } 
-                            else {
-                                return Ok(LoopBranch::Continue);
-                            }
-                        }
-
-                        if !relations.add_file(&striped_path)? { return Ok(LoopBranch::Continue); }
-                        println!("Added file: {}", &striped_path.display());
-
-                        // Set option
-                        if let Some(files) = sub_match.values_of("set") {
-                            let set: HashSet<PathBuf> = files.map(|a| PathBuf::from(a)).collect();
-                            relations.add_reference(&striped_path, &set)?;
-                            println!("Added references to: {}", &striped_path.display());
-                        }
-
-                        Ok(LoopBranch::Continue)
-                    }; // Closure end here 
-
-                    // if path is a directory then recusively get into it
-                    // if path is a file then simply add a file
-                    if metadata(file)?.is_dir() {
-                        utils::walk_directory_recursive( &path, &mut closure)?;
-                    } else { 
-                        path = utils::relativize_path(&path)?;
-
-                        // File was not added e.g. file already exists
-                        if !relations.add_file(&path)? { continue; }
-                        println!("Added file: {}", path.display());
-
-                        // Set option
-                        if let Some(files) = sub_match.values_of("set") {
-                            let set: HashSet<PathBuf> = files.map(|a| PathBuf::from(a)).collect();
-                            relations.add_reference(&path, &set)?;
-                            println!("Added references to: {}", path.display());
-                        }
-                    }
-                } // for loop end
-                relations.save(Some(&rif_path))?;
+                let rif_path = utils::get_rif_directory()?;
+                let mut rif = Rif::new(Some(&rif_path))?;
+                rif.add(files.into_iter().collect::<Vec<&str>>())?;
             } 
-        }  // if let end
+        } 
         Ok(())
     }
 
@@ -228,14 +136,14 @@ impl Cli {
             let rif_path = utils::get_rif_directory()?;
 
             if let Some(files) = sub_match.values_of("FILE") {
-                let mut relations = Relations::read(Some(&rif_path))?;
+                let mut relations = Relations::read_from_file(Some(&rif_path))?;
                 for file in files {
                     let path = PathBuf::from(file);
                     if relations.remove_file(&path)? {
                         println!("Removed file: {}", file);
                     }
                 }
-                relations.save(Some(&rif_path))?;
+                relations.save_to_file(Some(&rif_path))?;
             } 
         }
         Ok(())
@@ -262,7 +170,7 @@ impl Cli {
                         std::fs::rename(file_path, new_name)?;
                     }
                     raw_relations.rename_file(&PathBuf::from(file), &PathBuf::from(new_name))?;
-                    raw_relations.save(Some(&rif_path))?;
+                    raw_relations.save_to_file(Some(&rif_path))?;
                     println!("Sucessfully renamed \"{}\" to \"{}\"", file, new_name);
                 }
             } 
@@ -280,10 +188,10 @@ impl Cli {
                     let path = PathBuf::from(file);
                     let refs_vec: Vec<&str> = refs.collect();
                     let refs: HashSet<PathBuf> = refs_vec.iter().map(|a| PathBuf::from(a)).collect();
-                    let mut relations = Relations::read(Some(&rif_path))?;
+                    let mut relations = Relations::read_from_file(Some(&rif_path))?;
 
                     relations.add_reference(&path, &refs)?;
-                    relations.save(Some(&rif_path))?;
+                    relations.save_to_file(Some(&rif_path))?;
                     println!("Added references to: {}", file);
                 }
             } 
@@ -301,10 +209,10 @@ impl Cli {
                     let path = PathBuf::from(file);
                     let refs_vec: Vec<&str> = refs.collect();
                     let refs: HashSet<PathBuf> = refs_vec.iter().map(|a| PathBuf::from(a)).collect();
-                    let mut relations = Relations::read(Some(&rif_path))?;
+                    let mut relations = Relations::read_from_file(Some(&rif_path))?;
 
                     relations.remove_reference(&path, &refs)?;
-                    relations.save(Some(&rif_path))?;
+                    relations.save_to_file(Some(&rif_path))?;
                     println!("Removed references from: {}", file);
                 }
             } 
@@ -319,7 +227,7 @@ impl Cli {
 
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
-                let mut relations = Relations::read(Some(&rif_path))?;
+                let mut relations = Relations::read_from_file(Some(&rif_path))?;
 
                 if sub_match.is_present("force") {
                     relations.update_filestamp_force(&path)?;
@@ -345,7 +253,7 @@ impl Cli {
                         Hook::new(config.hook).execute(changed_files)?;
                     }
                 }
-                relations.save(Some(&rif_path))?;
+                relations.save_to_file(Some(&rif_path))?;
             } 
         } 
         Ok(())
@@ -359,10 +267,10 @@ impl Cli {
 
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
-                let mut relations = Relations::read(Some(&rif_path))?;
+                let mut relations = Relations::read_from_file(Some(&rif_path))?;
 
                 relations.discard_change(&path)?;
-                relations.save(Some(&rif_path))?;
+                relations.save_to_file(Some(&rif_path))?;
                 println!("File modification ignored for file: {}", file);
             } 
         } 
@@ -374,7 +282,7 @@ impl Cli {
         if let Some(sub_match) = matches.subcommand_matches("list") {
             let rif_path = utils::get_rif_directory()?;
 
-            let relations = Relations::read(Some(&rif_path))?;
+            let relations = Relations::read_from_file(Some(&rif_path))?;
             // If list command was given file argument, 
             // then print only the item not the whole list
             if let Some(file) = sub_match.value_of("FILE") {
@@ -406,7 +314,7 @@ impl Cli {
     fn subcommand_check(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("check") {
             let rif_path = utils::get_rif_directory()?;
-            let mut relations = Relations::read(Some(&rif_path))?;
+            let mut relations = Relations::read_from_file(Some(&rif_path))?;
 
             // Automatically update all files that has been modified
             if sub_match.is_present("update") {
@@ -417,7 +325,7 @@ impl Cli {
 
             let mut checker = Checker::with_relations(&relations)?;
             let changed_files = checker.check(&mut relations)?;
-            relations.save(Some(&rif_path))?;
+            relations.save_to_file(Some(&rif_path))?;
             println!("Rif check complete");
 
             if changed_files.len() != 0 {
@@ -432,31 +340,11 @@ impl Cli {
     /// Check if `init` subcommand was given and parse subcommand options
     fn subcommand_init(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("init") {
-            if PathBuf::from(RIF_DIECTORY).exists() {
-                return Err(RifError::RifIoError(String::from("Directory is already initiated")));
-            }
-            // Root directory
-            std::fs::create_dir(RIF_DIECTORY)?;
-
-            // Rif List (Named as )
-            let new_relations = Relations::new();
-            new_relations.save(None)?;
-            // Rif history
-            let new_rif_history = History::new();
-            new_rif_history.save_to_file(None)?;
-            // Rif Config
-            let new_config = Config::new();
-            new_config.save_to_file(None)?;
-            // User feedback
-            println!("Initiated a rif directory \"{}\"", std::env::current_dir()?.display());
-
-            if sub_match.is_present("default") {
-                std::fs::write(".rifignore", "target
-build
-target
-.git")?;
-                println!("Created new rig ignore file");
-            } // if end
+            // NOTE !!!
+            // This is necessary because, simple none cannot infer type, thus
+            // type annotation is necessary
+            let none :Option<&Path> = None;
+            Rif::init(none, sub_match.is_present("rifignore"))?;
         } 
         Ok(())
     }
@@ -473,7 +361,7 @@ target
 
             if sub_match.is_present("fix") {
                 raw_relations.sanity_fix()?;
-                raw_relations.save(Some(&rif_path))?;
+                raw_relations.save_to_file(Some(&rif_path))?;
                 println!("Sucessfully fixed the rif file");
             } else {
                 raw_relations.sanity_check()?;
@@ -488,7 +376,7 @@ target
         if let Some(sub_match) = matches.subcommand_matches("status") {
             let rif_path = utils::get_rif_directory()?;
 
-            let relations = Relations::read(Some(&rif_path))?;
+            let relations = Relations::read_from_file(Some(&rif_path))?;
             println!("# Modified files :");
             relations.track_modified_files()?;
 
@@ -515,7 +403,7 @@ target
         if let Some(sub_match) = matches.subcommand_matches("depend") {
             let rif_path = utils::get_rif_directory()?;
             if let Some(file) = sub_match.value_of("FILE") {
-                let relations = Relations::read(Some(&rif_path))?;
+                let relations = Relations::read_from_file(Some(&rif_path))?;
                 let dependes = relations.find_depends(&PathBuf::from(file))?;
                 println!("Files that depends on \"{}\"", file);
                 println!("=====");
@@ -540,7 +428,7 @@ target
                     _ => () // This doesn't happen
                 }
             } else {
-                let relations = Relations::read(Some(&rif_path))?;
+                let relations = Relations::read_from_file(Some(&rif_path))?;
                 if sub_match.is_present("compact") {
                     println!("{:?}", relations);
                 } else {
