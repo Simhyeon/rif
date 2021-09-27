@@ -147,14 +147,17 @@ pub fn relativize_path(path: &Path) -> Result<PathBuf, RifError> {
     Ok(path_buf)
 }
 
-/// Check if rif file exists
+/// Get rif file
 ///
-/// Return error if rif file is not in current working directory
-pub fn check_rif_file() -> Result<(), RifError> {
-    if !PathBuf::from(RIF_REL_FILE).exists() {
-        return Err(RifError::RifIoError(format!("\"{}\" doesn't exist in current working directory", RIF_REL_FILE)));
+/// Return error if rif file is not in current or ancestors' directory
+pub fn get_rif_directory() -> Result<PathBuf, RifError> {
+    for path in std::env::current_dir()?.ancestors() {
+        let candidate = path.join(RIF_DIECTORY);
+        if candidate.is_dir() {
+            return Ok(candidate);
+        }
     }
-    Ok(())
+    Err(RifError::ConfigError("Not a rif directory".to_owned()))
 }
 
 /// Loop diversion enumerator
@@ -180,6 +183,7 @@ pub fn get_black_list(use_gitignore: bool) -> Result<HashSet<PathBuf>, RifError>
     // Include git ignore files
     if use_gitignore{
         black_list.extend(read_git_ignore()?);
+        black_list.insert(PathBuf::from(".gitignore"));
     } 
 
     Ok(black_list)
@@ -216,5 +220,28 @@ fn read_git_ignore() -> Result<HashSet<PathBuf>, RifError> {
     } else {
         // It is perfectly normal that gitignore file doesn't exist
         Ok(HashSet::new())
+    }
+}
+pub fn get_rel_path(path : Option<&Path>) -> Result<PathBuf, RifError> {
+    if let Some(path) = path {
+        Ok(path.join(RIF_REL_FILE))
+    } else {  
+        Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_REL_FILE))
+    }
+}
+
+pub fn get_config_path(path : Option<&Path>) -> Result<PathBuf, RifError> {
+    if let Some(path) = path {
+        Ok(path.join(RIF_CONFIG))
+    } else {
+        Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_CONFIG))
+    }
+}
+
+pub fn get_history_path(path : Option<&Path>) -> Result<PathBuf, RifError> {
+    if let Some(path) = path {
+        Ok(path.join(RIF_HIST_FILE))
+    } else {
+        Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_HIST_FILE))
     }
 }
