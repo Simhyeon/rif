@@ -4,7 +4,7 @@ use std::path::{PathBuf, Path};
 use colored::*;
 use clap::clap_app;
 use crate::checker::Checker;
-use crate::rif::{hook::Hook, config::Config, history::History, rel::Relations};
+use crate::rif::{config::Config, history::History, rel::Relations};
 use crate::RifError;
 use crate::Rif;
 use crate::utils;
@@ -26,11 +26,11 @@ impl Cli {
     fn parse_subcommands(args: &clap::ArgMatches) -> Result<(), RifError> {
         Cli::subcommand_init(args)?;
         Cli::subcommand_add(args)?;
+        Cli::subcommand_commit(args)?;
         Cli::subcommand_remove(args)?;
         Cli::subcommand_rename(args)?;
         Cli::subcommand_set(args)?;
         Cli::subcommand_unset(args)?;
-        Cli::subcommand_update(args)?;
         Cli::subcommand_discard(args)?;
         Cli::subcommand_list(args)?;
         Cli::subcommand_check(args)?;
@@ -53,6 +53,7 @@ impl Cli {
             (@subcommand add =>
                 (about: "Add file to rif")
                 (@arg FILE: ... +required "File to add")
+                (@arg force: -f --force "Force add")
             )
             (@subcommand data =>
                 (about: "Print data as json format")
@@ -63,11 +64,11 @@ impl Cli {
                 (about: "Find files that depend on the file")
                 (@arg FILE: ... +required "File to find dependencies")
             )
-            (@subcommand remove =>
+            (@subcommand rm =>
                 (about: "Remove file from rif")
                 (@arg FILE: ... +required "File to remove")
             )
-            (@subcommand rename =>
+            (@subcommand mv =>
                 (about: "Rename a file")
                 (@arg FILE: +required "File to rename")
                 (@arg NEWNAME: +required "New file name")
@@ -82,12 +83,9 @@ impl Cli {
                 (@arg FILE: +required "File to change")
                 (@arg REFS: ... +required "Files to set")
             )
-            (@subcommand update =>
-                (about: "Update file's timestamp")
-                (@arg FILE: +required "File to update")
-                (@arg force: -f --force "Force update on file")
-                (@arg check: -c --check "Check after update")
-                (@arg message: -m --message +takes_value conflicts_with[force] "Message to add in update")
+            (@subcommand commit =>
+                (about: "Commit addition of files")
+                (@arg message: -m --message +takes_value conflicts_with[discard] "Message to add in update")
             )
             (@subcommand discard =>
                 (about: "Discard file changes")
@@ -110,7 +108,7 @@ impl Cli {
                 (@arg ignore: -i --ignore "Ignore untracked files")
                 (@arg verbose: -v --verbose "Also print out list")
             )
-            (@subcommand list =>
+            (@subcommand ls =>
                 (about: "Diplay all files from rif file")
                 (@arg FILE: "File to list")
                 (@arg depth: -d --depth +takes_value "Maximum depth for display tree(unsigned integer). 0 means print a whole tree")
@@ -118,32 +116,54 @@ impl Cli {
         ).get_matches()
     }
 
+    /// Check if `init` subcommand was given and parse subcommand options
+    fn subcommand_init(matches: &clap::ArgMatches) -> Result<(), RifError> {
+        if let Some(sub_match) = matches.subcommand_matches("init") {
+            // NOTE !!!
+            // This is necessary because, simple none cannot infer type, thus
+            // type annotation is necessary
+            let current_dir :Option<&Path> = None;
+            Rif::init(current_dir, sub_match.is_present("rifignore"))?;
+        } 
+        Ok(())
+    }
+
     /// Check if `add` subcommand was given and parse subcommand options
     fn subcommand_add(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("add") {
             if let Some(files) = sub_match.values_of("FILE") {
+                let files = files.into_iter().map(|s| Path::new(s)).collect();
+                let force = sub_match.is_present("force");
+
                 let rif_path = utils::get_rif_directory()?;
                 let mut rif = Rif::new(Some(&rif_path))?;
-                rif.add(files.into_iter().collect::<Vec<&str>>())?;
+                rif.add(&files, force)?;
             } 
+        } 
+        Ok(())
+    }
+
+    /// Check if `commit` subcommand was given and parse subcommand options
+    fn subcommand_commit(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        if let Some(sub_match) = matches.subcommand_matches("update") {
+            let message = sub_match.value_of("message");
+
+            let rif_path = utils::get_rif_directory()?;
+            let mut rif = Rif::new(Some(&rif_path))?;
+            rif.commit(message)?;
         } 
         Ok(())
     }
 
     /// Check if `remove` subcommand was given and parse subcommand options
     fn subcommand_remove(matches: &clap::ArgMatches) -> Result<(), RifError>{
-        if let Some(sub_match) = matches.subcommand_matches("remove") {
-            let rif_path = utils::get_rif_directory()?;
-
+        if let Some(sub_match) = matches.subcommand_matches("rm") {
             if let Some(files) = sub_match.values_of("FILE") {
-                let mut relations = Relations::read_from_file(Some(&rif_path))?;
-                for file in files {
-                    let path = PathBuf::from(file);
-                    if relations.remove_file(&path)? {
-                        println!("Removed file: {}", file);
-                    }
-                }
-                relations.save_to_file(Some(&rif_path))?;
+                let files = files.into_iter().map(|s| Path::new(s)).collect();
+                let rif_path = utils::get_rif_directory()?;
+
+                let mut rif = Rif::new(Some(&rif_path))?;
+                rif.remove(&files)?;
             } 
         }
         Ok(())
@@ -151,27 +171,12 @@ impl Cli {
 
     /// Check if `rename` subcommand was given and parse subcommand options
     fn subcommand_rename(matches: &clap::ArgMatches) -> Result<(), RifError>{
-        if let Some(sub_match) = matches.subcommand_matches("rename") {
-            let rif_path = utils::get_rif_directory()?;
-
-            // TODO
-            // Check this process
-            // Rename's target might already in rif_file
-            if let Some(file) = sub_match.value_of("FILE") {
+        if let Some(sub_match) = matches.subcommand_matches("mv") {
+            if let Some(source_name) = sub_match.value_of("FILE") {
                 if let Some(new_name) = sub_match.value_of("NEWNAME") {
-                    let mut raw_relations = Relations::read_as_raw(Some(&rif_path))?;
-                    if let Some(_) = raw_relations.files.get(&PathBuf::from(new_name)) {
-                        return Err(RifError::RenameFail(format!("Rename target: \"{}\" already exists", new_name)));
-                    }
-
-                    let file_path = Path::new(file);
-                    // Rename file if it exsits
-                    if file_path.exists() {
-                        std::fs::rename(file_path, new_name)?;
-                    }
-                    raw_relations.rename_file(&PathBuf::from(file), &PathBuf::from(new_name))?;
-                    raw_relations.save_to_file(Some(&rif_path))?;
-                    println!("Sucessfully renamed \"{}\" to \"{}\"", file, new_name);
+                    let rif_path = utils::get_rif_directory()?;
+                    let mut rif = Rif::new(Some(&rif_path))?;
+                    rif.rename(source_name, new_name)?;
                 }
             } 
         }
@@ -220,58 +225,14 @@ impl Cli {
         Ok(())
     }
 
-    /// Check if `update` subcommand was given and parse subcommand options
-    fn subcommand_update(matches: &clap::ArgMatches) -> Result<(), RifError>{
-        if let Some(sub_match) = matches.subcommand_matches("update") {
-            let rif_path = utils::get_rif_directory()?;
-
-            if let Some(file) = sub_match.value_of("FILE") {
-                let path = PathBuf::from(file);
-                let mut relations = Relations::read_from_file(Some(&rif_path))?;
-
-                if sub_match.is_present("force") {
-                    relations.update_filestamp_force(&path)?;
-                } else {
-                    relations.update_filestamp(&path)?;
-
-                    if let Some(msg) = sub_match.value_of("message") {
-                        let mut history = History::read_from_file(Some(&rif_path))?;
-                        history.add_history(&path, msg)?;
-                        history.save_to_file(Some(&rif_path))?;
-                    }
-                }
-                println!("Updated file: {}", file);
-
-                if sub_match.is_present("check") {
-                    let mut checker = Checker::with_relations(&relations)?;
-                    let changed_files = checker.check(&mut relations)?;
-                    println!("Rif check complete");
-
-                    if changed_files.len() != 0 {
-                        println!("\n///Hook Output///");
-                        let config = Config::read_from_file(Some(&rif_path))?;
-                        Hook::new(config.hook).execute(changed_files)?;
-                    }
-                }
-                relations.save_to_file(Some(&rif_path))?;
-            } 
-        } 
-        Ok(())
-    }
-
     /// Check if `discard` subcommand was given and parse subcommand options
     // Discard simply updates filestamp in rif time without updating filestamp in rif file
     fn subcommand_discard(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("discard") {
-            let rif_path = utils::get_rif_directory()?;
-
             if let Some(file) = sub_match.value_of("FILE") {
-                let path = PathBuf::from(file);
-                let mut relations = Relations::read_from_file(Some(&rif_path))?;
-
-                relations.discard_change(&path)?;
-                relations.save_to_file(Some(&rif_path))?;
-                println!("File modification ignored for file: {}", file);
+                let rif_path = utils::get_rif_directory()?;
+                let mut rif = Rif::new(Some(&rif_path))?;
+                rif.discard(file)?;
             } 
         } 
         Ok(())
@@ -279,33 +240,17 @@ impl Cli {
 
     /// Check if `list` subcommand was given and parse subcommand options
     fn subcommand_list(matches: &clap::ArgMatches) -> Result<(), RifError>{
-        if let Some(sub_match) = matches.subcommand_matches("list") {
+        if let Some(sub_match) = matches.subcommand_matches("ls") {
+            let file = sub_match.value_of("FILE");
+            let depth = sub_match
+                .value_of("depth")
+                .map(|num| {
+                    num.parse::<usize>().expect("Depth value should be an unsigned integer")
+                });
+
             let rif_path = utils::get_rif_directory()?;
-
-            let relations = Relations::read_from_file(Some(&rif_path))?;
-            // If list command was given file argument, 
-            // then print only the item not the whole list
-            if let Some(file) = sub_match.value_of("FILE") {
-                let path = PathBuf::from(file);
-
-                // Print relation tree
-                relations.display_file_depth(&path, 0)?;
-
-                // Also print update 
-                println!("\n# History : ");
-                let rif_history = History::read_from_file(Some(&rif_path))?;
-                rif_history.print_history(&path)?;
-
-                return Ok(());
-            } else if let Some(depth) = sub_match.value_of("depth") {
-                if let Ok(depth) = depth.parse::<u8>() {
-                    relations.display_depth(depth)?;
-                } else {
-                    return Err(RifError::Ext(String::from("Failed to parse depth because is is either not unsinged integer or invalid number")));
-                }
-            } else {
-                print!("{}", relations);
-            }
+            let rif = Rif::new(Some(&rif_path))?;
+            rif.list(file,depth)?;
         } 
         Ok(())
     }
@@ -331,20 +276,8 @@ impl Cli {
             if changed_files.len() != 0 {
                 println!("\n///Hook Output///");
                 let config = Config::read_from_file(Some(&rif_path))?;
-                Hook::new(config.hook).execute(changed_files)?;
+                config.hook.execute(changed_files)?;
             }
-        } 
-        Ok(())
-    }
-
-    /// Check if `init` subcommand was given and parse subcommand options
-    fn subcommand_init(matches: &clap::ArgMatches) -> Result<(), RifError> {
-        if let Some(sub_match) = matches.subcommand_matches("init") {
-            // NOTE !!!
-            // This is necessary because, simple none cannot infer type, thus
-            // type annotation is necessary
-            let none :Option<&Path> = None;
-            Rif::init(none, sub_match.is_present("rifignore"))?;
         } 
         Ok(())
     }
@@ -374,27 +307,12 @@ impl Cli {
     /// Check if `status` subcommand was given and parse subcommand options
     fn subcommand_status(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("status") {
+            let ignore = sub_match.is_present("ignore");
+            let verbose = sub_match.is_present("verbose");
+
             let rif_path = utils::get_rif_directory()?;
-
-            let relations = Relations::read_from_file(Some(&rif_path))?;
-            println!("# Modified files :");
-            relations.track_modified_files()?;
-
-            // Ignore untracked files
-            if !sub_match.is_present("ignore") {
-
-                let config = Config::read_from_file(Some(&rif_path))?;
-                // Default black list only includes .rif file for now
-                // Currently only check relative paths,or say, stripped path
-                let black_list = utils::get_black_list(config.git_ignore)?;
-                println!("\n# Untracked files :");
-                relations.track_unregistered_files(&black_list)?;
-            }
-
-            if sub_match.is_present("verbose") {
-                println!("\n# Current rif status:\n---");
-                print!("{}", relations);
-            }
+            let rif = Rif::new(Some(&rif_path))?;
+            rif.status(ignore, verbose)?;
         } 
         Ok(())
     }

@@ -2,14 +2,16 @@ pub mod rel;
 pub mod config;
 pub mod history;
 pub mod hook;
+pub mod meta;
 
+use crate::checker::Checker;
 use crate::models::LoopBranch;
 use crate::utils;
-use std::fs::metadata;
 use std::collections::HashSet;
 use config::Config;
 use rel::Relations;
 use history::History;
+use meta::Meta;
 use crate::RifError;
 use std::path::{Path, PathBuf};
 use crate::consts::*;
@@ -18,6 +20,7 @@ pub struct Rif {
     config: Config,
     history: History,
     relation: Relations,
+    meta: Meta,
     black_list: HashSet<PathBuf>,
     root_path: Option<PathBuf>,
 }
@@ -30,10 +33,13 @@ impl Rif {
             config,
             history: History::read_from_file(path.as_ref())?,
             relation: Relations::read_from_file(path.as_ref())?,
+            meta: Meta::read_from_file(path.as_ref())?,
             black_list,
             root_path: path.map(|p| p.as_ref().clone().to_owned()),
         })
     }
+
+    // External methods start
 
     pub fn init(path: Option<impl AsRef<Path>>,create_rif_ignore: bool) -> Result<(), RifError> {
         let path = if let Some(path) = path {
@@ -70,99 +76,236 @@ target
         Ok(())
     }
 
-    pub fn add(&mut self, files: Vec<&str>) -> Result<(), RifError> {
-        let argc = files.len();
-
+    // TODO
+    // Force option is especially useful with stale option
+    // e.g. rif add -fs -> This will add all stale files with force options
+    pub fn add(&mut self, files: &Vec<impl AsRef<Path>>, force: bool) -> Result<(), RifError> {
         for file in files {
-            let mut path = PathBuf::from(file);
-
-            // File is in rif ignore
-            if let Some(_) = self.black_list.get(&path) {
-                // If argument's count is 1 display specific logs
-                // to help user to grasp what is happening
-                if argc == 1 {
-                    // If File is not configurable
-                    // It's not allowed by the program
-                    // else it's allowd by the program 
-                    if BLACK_LIST.to_vec().contains(&file) {
-                        eprintln!("File : \"{}\" is not allowed", file);
-                    } else {
-                        println!("\"{}\" is in rifignore file, which is ignored.", file)
-                    }
-                }
-                continue;
-            }
+            let mut path = file.as_ref().to_owned();
 
             // If given value is "." which means that input value has not been expanded.
             // substitute with current working directory
             if path.to_str().unwrap() == "." {
                 path = std::env::current_dir()?;
-            } else {
-                // TODO 
-                // Simply remove it?
-                // Enable directory to be passed as argument
-                // If given path is a directory
-                if path.is_dir() && argc == 1 {
-                    println!("Directory cannot be added to rif.");
-                }
             }
 
-            // Closure to recursively get inside directory and add files
-            let mut closure = |entry_path : PathBuf| -> Result<LoopBranch, RifError> {
-                let striped_path = utils::relativize_path(&entry_path)?;
+            // Don't do anything if file is in blacklist
+            if self.is_in_black_list(&path) {
+                continue;
+            }
 
-                // Early return if file or directory is in black_list
-                // Need to check the black_list once more because closure checks nested
-                // directory that is not checked in outer for loop
-                if let Some(_) = self.black_list.get(&striped_path) {
-                    if striped_path.is_dir() {
-                        return Ok(LoopBranch::Exit);
-                    } 
-                    else {
-                        return Ok(LoopBranch::Continue);
-                    }
-                }
-
-                if !self.relation.add_file(&striped_path)? { return Ok(LoopBranch::Continue); }
-                Ok(LoopBranch::Continue)
-            }; // Closure end here 
-
-            // if path is a directory then recusively get into it
-            // if path is a file then simply add a file
-            if metadata(file)?.is_dir() {
-                utils::walk_directory_recursive( &path, &mut closure)?;
-            } else { 
-                path = utils::relativize_path(&path)?;
-
-                // File was not added e.g. file already exists
-                if !self.relation.add_file(&path)? { continue; }
+            // First, file is already inside
+            // Second, file is new
+            if self.relation.files.contains_key(&path) {
+                self.add_old_file(&path, force)?;
+            } else {
+                self.add_new_file(&path)?;
             }
         } // for loop end
+
+        // Update relation file
         self.relation.save_to_file(self.root_path.as_ref())?;
         Ok(())
     }
 
-    pub fn commit(&self) -> Result<(), RifError> {
+    // This needs some refactoring
+    pub fn commit(&mut self, message: Option<&str>) -> Result<(), RifError> {
+        // force updates
+        for file in self.meta.to_be_forced.iter() {
+            self.relation.update_filestamp_force(&file)?;
+        }
+
+        // updates
+        for file in self.meta.to_be_added.iter() {
+            self.relation.update_filestamp(&file)?;
+
+            // Add message to history
+            if let Some(msg) = message {
+                self.history.add_history(&file, msg)?;
+                self.history.save_to_file(self.root_path.as_ref())?;
+            }
+        }
+
+        // Check if added files are not empty
+        if self.meta.to_be_added.len() != 0 {
+            self.check()?;
+        }
+
+        // Clear meta
+        self.meta.to_be_forced.clear();
+        self.meta.to_be_added.clear();
+
+        // Save files
+        self.meta.save_to_file(self.root_path.as_ref())?;
+        self.relation.save_to_file(self.root_path.as_ref())?;
+
+        Ok(())
+    }
+    
+    pub fn discard(&mut self, file: impl AsRef<Path>) -> Result<(), RifError> {
+        self.relation.discard_change(file.as_ref())?;
+        self.relation.save_to_file(self.root_path.as_ref())?;
         Ok(())
     }
 
-    pub fn rename(&self) -> Result<(), RifError> {
+    // TODO
+    // Needs serious consideration
+    // Whether new_name exists in real directory
+    // Whether sany check is activated so that insane rename should be not executed
+    pub fn rename(&mut self, source_name: &str, new_name: &str) -> Result<(), RifError> {
+        let source_name = Path::new(source_name);
+        let new_name = Path::new(new_name);
+        if let Some(_) = self.relation.files.get(new_name) {
+            return Err(RifError::RenameFail(format!("Rename target: \"{}\" already exists", new_name.display())));
+        }
+
+        // Rename file if it exsits
+        if source_name.exists() {
+            std::fs::rename(source_name, new_name)?;
+        }
+
+        self.relation.rename_file(source_name, new_name)?;
+        self.relation.save_to_file(self.root_path.as_ref())?;
         Ok(())
     }
 
-    pub fn remove(&self) -> Result<(), RifError> {
+    pub fn remove(&mut self, files: &Vec<impl AsRef<Path>>) -> Result<(), RifError> {
+        for file in files {
+            let path = file.as_ref().to_owned();
+            self.relation.remove_file(&path)?;
+        }
+        self.relation.save_to_file(self.root_path.as_ref())?;
         Ok(())
     }
 
-    pub fn set(&self) -> Result<(), RifError> {
+    pub fn set(&mut self) -> Result<(), RifError> {
         Ok(())
     }
 
-    pub fn unset(&self) -> Result<(), RifError> {
+    pub fn unset(&mut self) -> Result<(), RifError> {
         Ok(())
     }
 
-    pub fn status(&self) -> Result<(), RifError> {
+    // TODO 
+    // Add staus line for currently added files which is stored in meta file
+    pub fn status(&self, ignore: bool, verbose: bool) -> Result<(), RifError> {
+        println!("# Modified files :");
+        self.relation.track_modified_files()?;
+
+        // Ignore untracked files
+        if ignore {
+            // Default black list only includes .rif file for now
+            // Currently only check relative paths,or say, stripped path
+            println!("\n# Untracked files :");
+            self.relation.track_unregistered_files(&self.black_list)?;
+        }
+
+        if verbose {
+            println!("\n# Current rif status:\n---");
+            print!("{}", self.relation);
+        }
         Ok(())
     }
+
+    pub fn list(&self, file : Option<impl AsRef<Path>>, depth: Option<usize>) -> Result<(), RifError> {
+        if let Some(file) = file {
+            // Print relation tree
+            self.relation.display_file_depth(file.as_ref(), 0)?;
+
+            // Also print update 
+            println!("\n# History : ");
+            self.history.print_history(file.as_ref())?;
+        } else if let Some(depth) = depth {
+            self.relation.display_depth(depth)?;
+        } else {
+            println!("{}", self.relation);
+        }
+        Ok(())
+    }
+
+    // External methods end
+
+    // MISC methods start
+    //
+    
+    /// Check file relations(impact of changes)
+    fn check(&mut self) -> Result<(), RifError> {
+        // Check relations(impact)
+        let mut checker = Checker::with_relations(&self.relation)?;
+        let changed_files = checker.check(&mut self.relation)?;
+        println!("Rif check complete");
+
+        if changed_files.len() != 0 && self.config.hook.trigger {
+            println!("\nHook Output");
+            self.config.hook.execute(changed_files)?;
+        }
+
+        Ok(())
+    }
+    
+    /// Check if given path is inside black_list
+    fn is_in_black_list(&self, path: &Path) -> bool {
+        // File is in rif ignore
+        if let Some(_) = self.black_list.get(path) {
+            // If File is not configurable
+            // It's not allowed by the program
+            // else it's allowd by the program 
+            if BLACK_LIST.to_vec().contains(&path.to_str().unwrap()) {
+                eprintln!("File : \"{}\" is not allowed", path.display());
+            } else {
+                println!("\"{}\" is in rifignore file, which is ignored.", path.display());
+            }
+            return true;
+        } 
+
+        false
+    }
+
+    fn add_new_file(&mut self, file: &Path) -> Result<(), RifError> {
+        // Closure to recursively get inside directory and add files
+        let mut closure = |entry_path : PathBuf| -> Result<LoopBranch, RifError> {
+            let striped_path = utils::relativize_path(&entry_path)?;
+
+            // Early return if file or directory is in black_list
+            // Need to check the black_list once more because closure checks nested
+            // directory that is not checked in outer for loop
+            if let Some(_) = self.black_list.get(&striped_path) {
+                if striped_path.is_dir() {
+                    return Ok(LoopBranch::Exit);
+                } 
+                else {
+                    return Ok(LoopBranch::Continue);
+                }
+            }
+
+            if !self.relation.add_file(&striped_path)? { return Ok(LoopBranch::Continue); }
+            Ok(LoopBranch::Continue)
+        }; // Closure end here 
+
+        // if path is a directory then recusively get into it
+        // if path is a file then simply add a file
+        if file.is_dir() {
+            utils::walk_directory_recursive(file, &mut closure)?;
+        } else { 
+            let file = utils::relativize_path(file)?;
+
+            // TODO 
+            // THis returns bools, is it not needed?
+            // File was not added e.g. file already exists
+            self.relation.add_file(&file)?;
+        }
+        Ok(())
+    }
+
+    fn add_old_file(&mut self, file: &Path, force: bool) -> Result<(), RifError> {
+        if force {
+            self.meta.to_be_forced.insert(file.to_owned());
+        } else {
+            self.meta.to_be_added.insert(file.to_owned());
+        }
+        Ok(())
+    }
+
+
+    // MISC methods end
 }
