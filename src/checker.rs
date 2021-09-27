@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 use colored::*;
 use crate::rif::rel::Relations;
@@ -19,9 +19,9 @@ struct Node {
 }
 
 impl Node {
-    fn new(path: &PathBuf) -> Self {
+    fn new(path: &Path) -> Self {
         Self {  
-            path: path.clone(),
+            path: path.to_owned(),
             level: DEFAULT_LEVEL,
             parent: None,
             children: HashSet::new()
@@ -68,7 +68,7 @@ impl Checker {
     /// # Args
     /// * `path` - File path of the node
     /// * `children` - References of given given path
-    fn add_node(&mut self, path: &PathBuf, children: &HashSet<PathBuf>) -> Result<(), RifError> {
+    fn add_node(&mut self, path: &Path, children: &HashSet<PathBuf>) -> Result<(), RifError> {
         // Update existing vector and non-existing vector 
         for child in children.iter() {
             if self.node_map.contains_key(child) {
@@ -84,7 +84,7 @@ impl Checker {
         let mut target_node = Node::new(path);
         target_node.level = highest_node_level + 1;
         target_node.children = children.clone();
-        self.node_map.insert(path.clone(), target_node);
+        self.node_map.insert(path.to_owned(), target_node);
 
         // If no reference node exits
         // else, some reference node exists
@@ -92,7 +92,7 @@ impl Checker {
             for child in children.iter() {
                 // Create child node and set necessary variables
                 let mut child_node = Node::new(child);
-                child_node.parent = Some(path.clone());
+                child_node.parent = Some(path.to_owned());
                 child_node.level = highest_node_level;
                 // Insert child node into hashmap
                 self.node_map.insert(child.clone(), child_node);
@@ -102,7 +102,7 @@ impl Checker {
             for child in self.non_existing.iter() {
                 // Create child node and set necessary variables
                 let mut child_node = Node::new(child);
-                child_node.parent = Some(path.clone());
+                child_node.parent = Some(path.to_owned());
                 child_node.level = highest_node_level;
                 // Insert child node into hashmap
                 self.node_map.insert(child.clone(), child_node);
@@ -203,7 +203,7 @@ impl Checker {
     /// # Args
     /// * `children` - Hahset of node keys that used for comparisons.
     fn get_highest_node_level(&self, children : &HashSet<PathBuf>) -> Result<i32, RifError> {
-        let children: Vec<&PathBuf> = children.iter().collect();
+        let children: Vec<&Path> = children.iter().map(|p| p.as_path()).collect();
 
         // Early return if children's lenth is 0
         if children.len() == 0 {
@@ -236,13 +236,13 @@ impl Checker {
     /// Recursively increase node by following upward starting from given path
     ///
     /// Used when some children node's were newly created to guarantee that children's level is always lower than that of parent's.
-    fn recursive_increase(&mut self, path: &PathBuf) -> Result<(), RifError> {
+    fn recursive_increase(&mut self, path: &Path) -> Result<(), RifError> {
         // Recursively increase the level from path to top level
         // Base case
         self.node_map.get_mut(path).unwrap().level += 1;
 
         // Current node position
-        let mut target_path = path.clone();
+        let mut target_path = path.to_owned();
 
         loop {
             // Get parent if possible
