@@ -5,6 +5,8 @@ use std::fs::metadata;
 use std::collections::HashSet;
 use std::path::{PathBuf, Path};
 
+#[cfg(feature = "color")]
+use colored::*;
 use chrono::NaiveDateTime;
 use filetime::FileTime;
 use crate::consts::*;
@@ -151,11 +153,11 @@ pub fn relativize_path(path: &Path) -> Result<PathBuf, RifError> {
 /// Get rif file
 ///
 /// Return error if rif file is not in current or ancestors' directory
+/// This returns root directory that contains .rif directory, not .rif directory itself
 pub fn get_rif_directory() -> Result<PathBuf, RifError> {
     for path in std::env::current_dir()?.ancestors() {
-        let candidate = path.join(RIF_DIECTORY);
-        if candidate.is_dir() {
-            return Ok(candidate);
+        if path.join(RIF_DIECTORY).is_dir() {
+            return Ok(path.to_owned());
         }
     }
     Err(RifError::ConfigError("Not a rif directory".to_owned()))
@@ -215,34 +217,73 @@ fn read_git_ignore() -> Result<HashSet<PathBuf>, RifError> {
         Ok(HashSet::new())
     }
 }
+
+// Path Getters
+
 pub fn get_rel_path(path : Option<impl AsRef<Path>>) -> Result<PathBuf, RifError> {
-    if let Some(path) = path {
-        Ok(path.as_ref().join(RIF_REL_FILE))
+    let path = if let Some(path) = path {
+        path.as_ref().to_owned()
     } else {  
-        Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_REL_FILE))
-    }
+        std::env::current_dir()?
+    };
+    Ok(path.join(RIF_DIECTORY).join(RIF_REL_FILE))
 }
 
 pub fn get_config_path(path : Option<impl AsRef<Path>>) -> Result<PathBuf, RifError> {
-    if let Some(path) = path {
-        Ok(path.as_ref().join(RIF_CONFIG))
-    } else {
-        Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_CONFIG))
-    }
+    let path = if let Some(path) = path {
+        path.as_ref().to_owned()
+    } else {  
+        std::env::current_dir()?
+    };
+    Ok(path.join(RIF_DIECTORY).join(RIF_CONFIG))
 }
 
 pub fn get_history_path(path : Option<impl AsRef<Path>>) -> Result<PathBuf, RifError> {
-    if let Some(path) = path {
-        Ok(path.as_ref().join(RIF_HIST_FILE))
-    } else {
-        Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_HIST_FILE))
-    }
+    let path = if let Some(path) = path {
+        path.as_ref().to_owned()
+    } else {  
+        std::env::current_dir()?
+    };
+    Ok(path.join(RIF_DIECTORY).join(RIF_HIST_FILE))
 }
 
 pub fn get_meta_path(path : Option<impl AsRef<Path>>) -> Result<PathBuf, RifError> {
-    if let Some(path) = path {
-        Ok(path.as_ref().join(RIF_META))
-    } else {
-        Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_META))
+    let path = if let Some(path) = path {
+        path.as_ref().to_owned()
+    } else {  
+        std::env::current_dir()?
+    };
+    Ok(path.join(RIF_DIECTORY).join(RIF_META))
+}
+
+pub fn green(string : &str) -> Box<dyn std::fmt::Display> {
+    if cfg!(feature = "color") {
+        #[cfg(feature = "color")]
+        return Box::new(string.green().to_owned());
     }
+    Box::new(string.to_owned())
+}
+
+pub fn blue(string : &str) -> Box<dyn std::fmt::Display> {
+    if cfg!(feature = "color") {
+        #[cfg(feature = "color")]
+        return Box::new(string.blue().to_owned());
+    }
+    Box::new(string.to_owned())
+}
+
+pub fn red(string : &str) -> Box<dyn std::fmt::Display> {
+    if cfg!(feature = "color") {
+        #[cfg(feature = "color")]
+        return Box::new(string.red().to_owned());
+    }
+    Box::new(string.to_owned())
+}
+
+pub fn yellow(string : &str) -> Box<dyn std::fmt::Display> {
+    if cfg!(feature = "color") {
+        #[cfg(feature = "color")]
+        return Box::new(string.yellow().to_owned());
+    }
+    Box::new(string.to_owned())
 }
