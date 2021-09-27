@@ -10,3 +10,5 @@ pub const RIF_DIECTORY: &str = ".rif";
 pub const RIF_HIST_FILE: &str = "history";
 /// Config
 pub const RIF_CONFIG: &str = "config";
+/// Meta
+pub const RIF_META: &str = "meta";
