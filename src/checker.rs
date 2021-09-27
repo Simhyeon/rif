@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{PathBuf, Path};
 
-use colored::*;
+use crate::utils;
 use crate::rif::rel::Relations;
 use crate::models::FileStatus;
 use crate::RifError;
@@ -168,7 +168,7 @@ impl Checker {
             if let Some(file) = rif_list.files.get_mut(target_key) {
                 // Print status changes into stdout
                 if file.status != status {
-                    println!("Status update \"{}\" {} -> {}", target_key.display().to_string().green(), file.status, status);
+                    println!("Status update \"{}\" {} -> {}", utils::green(&target_key.display().to_string()), file.status, status);
                     // Add file to changed files
                     changed_files.push((status, target_key.to_path_buf()));
                 }
