@@ -1,3 +1,4 @@
+use crate::models::LoopBranch;
 use std::io::{BufRead, BufReader};
 use std::fs::File;
 use std::fs::metadata;
@@ -160,14 +161,6 @@ pub fn get_rif_directory() -> Result<PathBuf, RifError> {
     Err(RifError::ConfigError("Not a rif directory".to_owned()))
 }
 
-/// Loop diversion enumerator
-///
-/// Used with walk_directory_recursive method, so that given function can decide when to stop recursion.
-pub enum LoopBranch {
-    Exit,
-    Continue,
-}
-
 /// Get black list
 ///
 /// This read rig ignore file contents and merge with const black list contents
@@ -222,25 +215,25 @@ fn read_git_ignore() -> Result<HashSet<PathBuf>, RifError> {
         Ok(HashSet::new())
     }
 }
-pub fn get_rel_path(path : Option<&Path>) -> Result<PathBuf, RifError> {
+pub fn get_rel_path(path : Option<impl AsRef<Path>>) -> Result<PathBuf, RifError> {
     if let Some(path) = path {
-        Ok(path.join(RIF_REL_FILE))
+        Ok(path.as_ref().join(RIF_REL_FILE))
     } else {  
         Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_REL_FILE))
     }
 }
 
-pub fn get_config_path(path : Option<&Path>) -> Result<PathBuf, RifError> {
+pub fn get_config_path(path : Option<impl AsRef<Path>>) -> Result<PathBuf, RifError> {
     if let Some(path) = path {
-        Ok(path.join(RIF_CONFIG))
+        Ok(path.as_ref().join(RIF_CONFIG))
     } else {
         Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_CONFIG))
     }
 }
 
-pub fn get_history_path(path : Option<&Path>) -> Result<PathBuf, RifError> {
+pub fn get_history_path(path : Option<impl AsRef<Path>>) -> Result<PathBuf, RifError> {
     if let Some(path) = path {
-        Ok(path.join(RIF_HIST_FILE))
+        Ok(path.as_ref().join(RIF_HIST_FILE))
     } else {
         Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_HIST_FILE))
     }
