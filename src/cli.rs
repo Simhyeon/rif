@@ -124,17 +124,17 @@ impl Cli {
     /// Check if `add` subcommand was given and parse subcommand options
     fn subcommand_add(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("add") {
-            utils::check_rif_file()?;
+            let rif_path = utils::get_rif_directory()?;
 
             if let Some(files) = sub_match.values_of("FILE") {
-                let mut relations = Relations::read()?;
+                let mut relations = Relations::read(Some(&rif_path))?;
                 // Easily fallable mistake prevention
                 // When user is trying set multiple files references, user need to explicit
                 if files.len() > 1 && sub_match.is_present("set") && !sub_match.is_present("batch") {
                     return Err(RifError::CliError(String::from("You need to give batch option <-b or --batch> for batch set of references")));
                 }
 
-                let config = Config::read_from_file()?;
+                let config = Config::read_from_file(Some(&rif_path))?;
                 let black_list = utils::get_black_list(config.git_ignore)?;
                 let argc = files.len();
 
@@ -216,7 +216,7 @@ impl Cli {
                         }
                     }
                 } // for loop end
-                Relations::save(relations)?;
+                relations.save(Some(&rif_path))?;
             } 
         }  // if let end
         Ok(())
@@ -225,17 +225,17 @@ impl Cli {
     /// Check if `remove` subcommand was given and parse subcommand options
     fn subcommand_remove(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("remove") {
-            utils::check_rif_file()?;
+            let rif_path = utils::get_rif_directory()?;
 
             if let Some(files) = sub_match.values_of("FILE") {
-                let mut relations = Relations::read()?;
+                let mut relations = Relations::read(Some(&rif_path))?;
                 for file in files {
                     let path = PathBuf::from(file);
                     if relations.remove_file(&path)? {
                         println!("Removed file: {}", file);
                     }
                 }
-                Relations::save( relations)?;
+                relations.save(Some(&rif_path))?;
             } 
         }
         Ok(())
@@ -244,14 +244,14 @@ impl Cli {
     /// Check if `rename` subcommand was given and parse subcommand options
     fn subcommand_rename(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("rename") {
-            utils::check_rif_file()?;
+            let rif_path = utils::get_rif_directory()?;
 
             // TODO
             // Check this process
             // Rename's target might already in rif_file
             if let Some(file) = sub_match.value_of("FILE") {
                 if let Some(new_name) = sub_match.value_of("NEWNAME") {
-                    let mut raw_relations = Relations::read_as_raw()?;
+                    let mut raw_relations = Relations::read_as_raw(Some(&rif_path))?;
                     if let Some(_) = raw_relations.files.get(&PathBuf::from(new_name)) {
                         return Err(RifError::RenameFail(format!("Rename target: \"{}\" already exists", new_name)));
                     }
@@ -262,7 +262,7 @@ impl Cli {
                         std::fs::rename(file_path, new_name)?;
                     }
                     raw_relations.rename_file(&PathBuf::from(file), &PathBuf::from(new_name))?;
-                    Relations::save(raw_relations)?;
+                    raw_relations.save(Some(&rif_path))?;
                     println!("Sucessfully renamed \"{}\" to \"{}\"", file, new_name);
                 }
             } 
@@ -273,17 +273,17 @@ impl Cli {
     /// Check if `set` subcommand was given and parse subcommand options
     fn subcommand_set(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("set") {
-            utils::check_rif_file()?;
+            let rif_path = utils::get_rif_directory()?;
 
             if let Some(file) = sub_match.value_of("FILE") {
                 if let Some(refs) = sub_match.values_of("REFS") {
                     let path = PathBuf::from(file);
                     let refs_vec: Vec<&str> = refs.collect();
                     let refs: HashSet<PathBuf> = refs_vec.iter().map(|a| PathBuf::from(a)).collect();
-                    let mut relations = Relations::read()?;
+                    let mut relations = Relations::read(Some(&rif_path))?;
 
                     relations.add_reference(&path, &refs)?;
-                    Relations::save(relations)?;
+                    relations.save(Some(&rif_path))?;
                     println!("Added references to: {}", file);
                 }
             } 
@@ -294,17 +294,17 @@ impl Cli {
     /// Check if `unset` subcommand was given and parse subcommand options
     fn subcommand_unset(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("unset") {
-            utils::check_rif_file()?;
+            let rif_path = utils::get_rif_directory()?;
 
             if let Some(file) = sub_match.value_of("FILE") {
                 if let Some(refs) = sub_match.values_of("REFS") {
                     let path = PathBuf::from(file);
                     let refs_vec: Vec<&str> = refs.collect();
                     let refs: HashSet<PathBuf> = refs_vec.iter().map(|a| PathBuf::from(a)).collect();
-                    let mut relations = Relations::read()?;
+                    let mut relations = Relations::read(Some(&rif_path))?;
 
                     relations.remove_reference(&path, &refs)?;
-                    Relations::save(relations)?;
+                    relations.save(Some(&rif_path))?;
                     println!("Removed references from: {}", file);
                 }
             } 
@@ -315,11 +315,11 @@ impl Cli {
     /// Check if `update` subcommand was given and parse subcommand options
     fn subcommand_update(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("update") {
-            utils::check_rif_file()?;
+            let rif_path = utils::get_rif_directory()?;
 
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
-                let mut relations = Relations::read()?;
+                let mut relations = Relations::read(Some(&rif_path))?;
 
                 if sub_match.is_present("force") {
                     relations.update_filestamp_force(&path)?;
@@ -327,9 +327,9 @@ impl Cli {
                     relations.update_filestamp(&path)?;
 
                     if let Some(msg) = sub_match.value_of("message") {
-                        let mut history = History::read_from_file()?;
+                        let mut history = History::read_from_file(Some(&rif_path))?;
                         history.add_history(&path, msg)?;
-                        history.save_to_file()?;
+                        history.save_to_file(Some(&rif_path))?;
                     }
                 }
                 println!("Updated file: {}", file);
@@ -341,12 +341,11 @@ impl Cli {
 
                     if changed_files.len() != 0 {
                         println!("\n///Hook Output///");
-                        let config = Config::read_from_file()?;
+                        let config = Config::read_from_file(Some(&rif_path))?;
                         Hook::new(config.hook).execute(changed_files)?;
                     }
                 }
-
-                Relations::save(relations)?;
+                relations.save(Some(&rif_path))?;
             } 
         } 
         Ok(())
@@ -356,14 +355,14 @@ impl Cli {
     // Discard simply updates filestamp in rif time without updating filestamp in rif file
     fn subcommand_discard(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("discard") {
-            utils::check_rif_file()?;
+            let rif_path = utils::get_rif_directory()?;
 
             if let Some(file) = sub_match.value_of("FILE") {
                 let path = PathBuf::from(file);
-                let mut relations = Relations::read()?;
+                let mut relations = Relations::read(Some(&rif_path))?;
 
                 relations.discard_change(&path)?;
-                Relations::save(relations)?;
+                relations.save(Some(&rif_path))?;
                 println!("File modification ignored for file: {}", file);
             } 
         } 
@@ -373,9 +372,9 @@ impl Cli {
     /// Check if `list` subcommand was given and parse subcommand options
     fn subcommand_list(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("list") {
-            utils::check_rif_file()?;
+            let rif_path = utils::get_rif_directory()?;
 
-            let relations = Relations::read()?;
+            let relations = Relations::read(Some(&rif_path))?;
             // If list command was given file argument, 
             // then print only the item not the whole list
             if let Some(file) = sub_match.value_of("FILE") {
@@ -386,7 +385,7 @@ impl Cli {
 
                 // Also print update 
                 println!("\n# History : ");
-                let rif_history = History::read_from_file()?;
+                let rif_history = History::read_from_file(Some(&rif_path))?;
                 rif_history.print_history(&path)?;
 
                 return Ok(());
@@ -406,8 +405,8 @@ impl Cli {
     /// Check if `check` subcommand was given and parse subcommand options
     fn subcommand_check(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("check") {
-            utils::check_rif_file()?;
-            let mut relations = Relations::read()?;
+            let rif_path = utils::get_rif_directory()?;
+            let mut relations = Relations::read(Some(&rif_path))?;
 
             // Automatically update all files that has been modified
             if sub_match.is_present("update") {
@@ -418,12 +417,12 @@ impl Cli {
 
             let mut checker = Checker::with_relations(&relations)?;
             let changed_files = checker.check(&mut relations)?;
-            Relations::save(relations)?;
+            relations.save(Some(&rif_path))?;
             println!("Rif check complete");
 
             if changed_files.len() != 0 {
                 println!("\n///Hook Output///");
-                let config = Config::read_from_file()?;
+                let config = Config::read_from_file(Some(&rif_path))?;
                 Hook::new(config.hook).execute(changed_files)?;
             }
         } 
@@ -441,15 +440,15 @@ impl Cli {
 
             // Rif List (Named as )
             let new_relations = Relations::new();
-            Relations::save(new_relations)?;
+            new_relations.save(None)?;
             // Rif history
             let new_rif_history = History::new();
-            new_rif_history.save_to_file()?;
+            new_rif_history.save_to_file(None)?;
             // Rif Config
             let new_config = Config::new();
-            new_config.save_to_file()?;
+            new_config.save_to_file(None)?;
             // User feedback
-            println!("Initiated rif project");
+            println!("Initiated a rif directory \"{}\"", std::env::current_dir()?.display());
 
             if sub_match.is_present("default") {
                 std::fs::write(".rifignore", "target
@@ -465,16 +464,16 @@ target
     /// Check if `sanity` subcommand was given and parse subcommand options
     fn subcommand_sanity(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("sanity") {
-            utils::check_rif_file()?;
+            let rif_path = utils::get_rif_directory()?;
 
             // NOTE ::: You don't have to manually call sanity check
             // Because read operation always check file sanity after reading a file
             // and return erros if sanity was not assured.
-            let mut raw_relations = Relations::read_as_raw()?;
+            let mut raw_relations = Relations::read_as_raw(Some(&rif_path))?;
 
             if sub_match.is_present("fix") {
                 raw_relations.sanity_fix()?;
-                Relations::save(raw_relations)?;
+                raw_relations.save(Some(&rif_path))?;
                 println!("Sucessfully fixed the rif file");
             } else {
                 raw_relations.sanity_check()?;
@@ -487,16 +486,16 @@ target
     /// Check if `status` subcommand was given and parse subcommand options
     fn subcommand_status(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("status") {
-            utils::check_rif_file()?;
+            let rif_path = utils::get_rif_directory()?;
 
-            let relations = Relations::read()?;
+            let relations = Relations::read(Some(&rif_path))?;
             println!("# Modified files :");
             relations.track_modified_files()?;
 
             // Ignore untracked files
             if !sub_match.is_present("ignore") {
 
-                let config = Config::read_from_file()?;
+                let config = Config::read_from_file(Some(&rif_path))?;
                 // Default black list only includes .rif file for now
                 // Currently only check relative paths,or say, stripped path
                 let black_list = utils::get_black_list(config.git_ignore)?;
@@ -514,8 +513,9 @@ target
     
     fn subcommand_depend(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("depend") {
+            let rif_path = utils::get_rif_directory()?;
             if let Some(file) = sub_match.value_of("FILE") {
-                let relations = Relations::read()?;
+                let relations = Relations::read(Some(&rif_path))?;
                 let dependes = relations.find_depends(&PathBuf::from(file))?;
                 println!("Files that depends on \"{}\"", file);
                 println!("=====");
@@ -530,16 +530,17 @@ target
 
     fn subcommand_data(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("data") {
+            let rif_path = utils::get_rif_directory()?;
             if let Some(file) = sub_match.value_of("TYPE") {
                 match file {
                     "history" => {
-                        let rif_history = History::read_from_file()?;
+                        let rif_history = History::read_from_file(Some(&rif_path))?;
                         println!("{:#?}", rif_history);
                     }
                     _ => () // This doesn't happen
                 }
             } else {
-                let relations = Relations::read()?;
+                let relations = Relations::read(Some(&rif_path))?;
                 if sub_match.is_present("compact") {
                     println!("{:?}", relations);
                 } else {
