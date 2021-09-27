@@ -2,7 +2,9 @@ use chrono::NaiveDateTime;
 use std::collections::{ HashMap, HashSet };
 use std::path::{Path, PathBuf};
 
-use colored::*;
+// TODO
+// Is this really necessary? Or there could be minimal version?
+// This is for .sorted method
 use itertools::Itertools;
 use serde::{ Serialize, Deserialize };
 use crate::error::RifError;
@@ -51,14 +53,14 @@ impl Relations {
         let mut file_output = String::new();
 
         file_output.push_str(
-            &format!("> {} {}", path.to_str().unwrap().green(), single_file.status)
+            &format!("> {} {}", utils::green(path.to_str().unwrap()), single_file.status)
         );
 
         for ref_item in single_file.references.iter() {
             file_output.push_str(&format!("\n  - > {} {}", ref_item.display(), self.files.get(ref_item).unwrap().status));
             if let FileStatus::Stale = single_file.status {
                 if current_time < self.files.get(ref_item).unwrap().timestamp {
-                    file_output.push_str(&format!(" {}", "Updated".yellow()));
+                    file_output.push_str(&format!(" {}", utils::yellow("Updated")));
                 }
             }
         }
@@ -74,7 +76,7 @@ impl Relations {
     /// * `depth` - Desired depth value to display
     pub fn display_file_depth(&self, path: &Path, depth: usize) -> Result<(), RifError> {
         if let Some(single_file) = self.files.get(path) {
-            print!("> {} {}\n", path.to_str().unwrap().green(), single_file.status);
+            print!("> {} {}\n", utils::green(path.to_str().unwrap()), single_file.status);
             if single_file.references.len() != 0 && depth != 1 {
                 self.display_file_recursive(&path, std::cmp::max(1, depth) - 1, 1)?;
             }
@@ -93,7 +95,7 @@ impl Relations {
         for path in self.files.keys().cloned().sorted() {
             // This should always work theoritically
             let single_file = self.files.get(&path).unwrap();
-            print!("> {} {}\n", path.to_str().unwrap().green(), single_file.status);
+            print!("> {} {}\n", utils::green(path.to_str().unwrap()), single_file.status);
             if single_file.references.len() != 0 && depth != 1 {
                 self.display_file_recursive(&path, std::cmp::max(1, depth) - 1, 1)?;
             }
@@ -120,7 +122,7 @@ impl Relations {
             print!("- > {} {}", ref_item_key.display(), ref_item.status);
             if let FileStatus::Stale = parent_file.status {
                 if current_time < ref_item.timestamp {
-                    print!(" {}", "Updated".yellow());
+                    print!(" {}", utils::yellow("Updated"));
                 }
             }
             print!("\n");
@@ -568,7 +570,7 @@ impl Relations {
 
         if modified.len() != 0 {
             for file in modified.iter() {
-                display_text.push_str(&format!("    {}\n", file.display().to_string().red()));
+                display_text.push_str(&format!("    {}\n", utils::red(&file.display().to_string())));
             }
         } else {
             display_text.push_str(&format!("    All files are up to date.\n"));
@@ -609,7 +611,7 @@ impl Relations {
                 if !stripped.is_dir() {
                     // File is not in tracked files
                     if let None = self.files.get(&walk_path) {
-                        println!("    {}", stripped.display().to_string().red());
+                        println!("    {}", utils::red(&stripped.display().to_string()));
                     }
                 }
                 Ok(LoopBranch::Continue)
@@ -630,11 +632,11 @@ impl Relations {
     }
 
     // Ok, what the fuck is happening in here?
-    pub fn find_depends(&self, target_path: &PathBuf) -> Result<Vec<PathBuf>, RifError> {
-        let mut depends = Vec::new();
+    pub fn find_depends(&self, target_path: &Path) -> Result<Vec<PathBuf>, RifError> {
+        let mut depends: Vec<PathBuf> = Vec::new();
 
-        let mut next = Vec::new();
-        next.push(target_path.clone());
+        let mut next: Vec<PathBuf> = Vec::new();
+        next.push(target_path.to_owned());
         let mut first = next.pop();
 
         //println!("{}", first.clone().unwrap().display());
