@@ -1,18 +1,18 @@
 #[derive(Debug)]
 pub enum RifError {
-    BincodeError(bincode::Error),
     AddFail(String),
-    UpdateError(String),
-    RenameFail(String),
+    BincodeError(bincode::Error),
     CheckerError(String),
     CliError(String),
+    ConfigError(String),
     Ext(String),
     GetFail(String),
     InvalidFormat(String),
     IoError(std::io::Error),
+    RenameFail(String),
     RifIoError(String),
     SerdeError(serde_json::Error),
-    ConfigError(String),
+    UpdateError(String),
 }
 
 impl std::fmt::Display for RifError {
