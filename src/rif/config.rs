@@ -1,6 +1,7 @@
+use std::path::Path;
 use serde::{ Deserialize, Serialize };
 
-use crate::consts::*;
+use crate::utils;
 use crate::rif::hook::{HookConfig,HookArgument};
 use crate::RifError;
 
@@ -19,19 +20,22 @@ impl Config {
                 hook_command: None,
                 hook_argument: HookArgument::None,
             },
-            git_ignore: false,
+            // Default is true
+            git_ignore: true,
         }
     }
 
     /// Read config from a file
-    pub fn read_from_file() -> Result<Self, RifError> {
-        Ok(serde_json::from_str(&std::fs::read_to_string(RIF_CONFIG)?)?)
+    pub fn read_from_file(path : Option<&Path>) -> Result<Self, RifError> {
+        let path = utils::get_config_path(path)?;
+        Ok(serde_json::from_str( &std::fs::read_to_string(path)?)?)
     }
 
     /// Save config into a file
-    pub fn save_to_file(&self) -> Result<(), RifError> {
+    pub fn save_to_file(&self, path: Option<&Path>) -> Result<(), RifError> {
+        let path = utils::get_config_path(path)?;
         let rif_config = serde_json::to_string_pretty(self)?;
-        std::fs::write(RIF_CONFIG, rif_config)?;
+        std::fs::write(path, rif_config)?;
 
         Ok(())
     }

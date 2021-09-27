@@ -1,7 +1,8 @@
 use serde::{ Serialize , Deserialize};
+use crate::utils;
+use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
-use crate::consts::*;
 use crate::RifError;
 use colored::*;
 
@@ -21,8 +22,9 @@ impl History {
     }
 
     /// Read history struct from a file
-    pub fn read_from_file() -> Result<Self, RifError> {
-        let result = bincode::deserialize::<Self>(&std::fs::read(RIF_HIST_FILE)?);
+    pub fn read_from_file(path: Option<&Path>) -> Result<Self, RifError> {
+        let path =utils::get_history_path(path)?;
+        let result = bincode::deserialize::<Self>(&std::fs::read(path)?);
         match result {
             Err(err) => {
                 Err(RifError::BincodeError(err))
@@ -34,12 +36,13 @@ impl History {
     }
 
     /// Save history struct into a file
-    pub fn save_to_file(&self) -> Result<(), RifError> {
+    pub fn save_to_file(&self, path: Option<&Path>) -> Result<(), RifError> {
         let result = bincode::serialize(self);
+        let path =utils::get_history_path(path)?;
         if let Err(err) = result {
             Err(RifError::BincodeError(err))
         } else {
-            std::fs::write(RIF_HIST_FILE, result.unwrap())?;
+            std::fs::write(path, result.unwrap())?;
             Ok(())
         }
     }

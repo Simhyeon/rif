@@ -1,8 +1,7 @@
 use chrono::NaiveDateTime;
 use std::collections::{ HashMap, HashSet };
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use crate::consts::*;
 use colored::*;
 use itertools::Itertools;
 use serde::{ Serialize, Deserialize };
@@ -653,8 +652,9 @@ impl Relations {
         Ok(depends)
     }
     /// Read rif file and return rif list
-    pub fn read() -> Result<Relations, RifError> {
-        let result = bincode::deserialize::<Relations>(&std::fs::read(RIF_REL_FILE)?);
+    pub fn read(path: Option<&Path>) -> Result<Relations, RifError> {
+        let path = utils::get_rel_path(path)?;
+        let result = bincode::deserialize::<Relations>(&std::fs::read(path)?);
         match result {
             Err(err) => { Err(RifError::BincodeError(err)) }
             Ok(value) => { Ok(value) }
@@ -662,18 +662,20 @@ impl Relations {
     }
 
     /// Read rif file without sanity check
-    pub fn read_as_raw() -> Result<Relations, RifError> {
-        let rif_list: Relations = serde_json::from_str(&std::fs::read_to_string(RIF_REL_FILE)?)?;
+    pub fn read_as_raw(path: Option<&Path>) -> Result<Relations, RifError> {
+        let path = utils::get_rel_path(path)?;
+        let rif_list: Relations = serde_json::from_str(&std::fs::read_to_string(path)?)?;
         Ok(rif_list)
     }
 
     /// Save rif list into rif file
-    pub fn save(rif_list: Relations) -> Result<(), RifError> {
-        let result = bincode::serialize::<Relations>(&rif_list);
+    pub fn save(&self, path: Option<&Path>) -> Result<(), RifError> {
+        let result = bincode::serialize::<Relations>(self);
+        let path = utils::get_rel_path(path)?;
         match result {
             Err(err) => { return Err(RifError::BincodeError(err)); }
             Ok(value) => { 
-                std::fs::write(RIF_REL_FILE, value)?;
+                std::fs::write(path, value)?;
             }
         }
         Ok(())
