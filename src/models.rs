@@ -38,3 +38,11 @@ pub enum RefStatus {
     Invalid,
     Valid
 }
+
+/// Loop diversion enumerator
+///
+/// Used with walk_directory_recursive method, so that given function can decide when to stop recursion.
+pub enum LoopBranch {
+    Exit,
+    Continue,
+}
