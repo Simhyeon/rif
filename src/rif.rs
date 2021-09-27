@@ -47,7 +47,7 @@ impl Rif {
         } else { std::env::current_dir()? };
 
         // Already initiated
-        if path.exists() {
+        if path.join(RIF_DIECTORY).exists() {
             return Err(RifError::RifIoError(String::from("Directory is already initiated")));
         }
 
@@ -63,15 +63,14 @@ impl Rif {
         // Rif Config
         let new_config = Config::new();
         new_config.save_to_file(Some(&path))?;
-        // User feedback
+        // Rif meta
+        let new_meta = Meta::new();
+        new_meta.save_to_file(Some(&path))?;
         println!("Initiated a rif directory \"{}\"", std::env::current_dir()?.display());
 
         // Also crate rifignore file
         if create_rif_ignore {
-            std::fs::write(".rifignore", "target
-build
-target
-.git")?;
+            std::fs::write(".rifignore","")?;
         }
         Ok(())
     }
@@ -128,7 +127,7 @@ target
 
         // Check if added files are not empty
         if self.meta.to_be_added.len() != 0 {
-            self.check()?;
+            self.check_exec()?;
         }
 
         // Clear meta
@@ -178,11 +177,19 @@ target
         Ok(())
     }
 
-    pub fn set(&mut self) -> Result<(), RifError> {
+    pub fn set(&mut self, file: &Path, refs : &Vec<impl AsRef<Path>>) -> Result<(), RifError> {
+        let refs: HashSet<PathBuf> = refs.iter().map(|a| a.as_ref().to_owned()).collect();
+
+        self.relation.add_reference(file, &refs)?;
+        self.relation.save_to_file(self.root_path.as_ref())?;
         Ok(())
     }
 
-    pub fn unset(&mut self) -> Result<(), RifError> {
+    pub fn unset(&mut self, file: &Path, refs : &Vec<impl AsRef<Path>>) -> Result<(), RifError> {
+        let refs: HashSet<PathBuf> = refs.iter().map(|a| a.as_ref().to_owned()).collect();
+
+        self.relation.remove_reference(file, &refs)?;
+        self.relation.save_to_file(self.root_path.as_ref())?;
         Ok(())
     }
 
@@ -223,13 +230,62 @@ target
         Ok(())
     }
 
+    pub fn data(&self, data_type: Option<&str>, compact: bool) -> Result<(), RifError> {
+        if let Some(data_type) = data_type {
+            match data_type {
+                "history" => {
+                    println!("{:#?}", self.history);
+                }
+                _ => () // This doesn't happen
+            }
+        } else {
+            if compact {
+                println!("{:?}", self.relation);
+            } else {
+                println!("{:#?}", self.relation);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn depend(&self, file: &Path)  -> Result<(), RifError> {
+        let dependes = self.relation.find_depends(file)?;
+        println!("Files that depends on \"{}\"", file.display());
+        println!("=====");
+        for item in dependes {
+            println!("{}", utils::green(&item.display().to_string()));
+        }
+        Ok(())
+    }
+
+    pub fn check(&mut self) -> Result<(), RifError> {
+        self.check_exec()?;
+        Ok(())
+    }
+
+    pub fn sanity(&mut self, fix: bool) -> Result<(), RifError> {
+        // NOTE ::: You don't have to manually call sanity check
+        // Because read operation always check file sanity after reading a file
+        // and return erros if sanity was not assured.
+        if fix {
+            self.relation.sanity_fix()?;
+            self.relation.save_to_file(self.root_path.as_ref())?;
+            println!("Sucessfully fixed the rif file");
+        } else {
+            self.relation.sanity_check()?;
+            println!("Sucessfully checked the rif file");
+        }
+        Ok(())
+    }
+
     // External methods end
 
     // MISC methods start
     //
     
     /// Check file relations(impact of changes)
-    fn check(&mut self) -> Result<(), RifError> {
+    fn check_exec(&mut self) -> Result<(), RifError> {
         // Check relations(impact)
         let mut checker = Checker::with_relations(&self.relation)?;
         let changed_files = checker.check(&mut self.relation)?;
