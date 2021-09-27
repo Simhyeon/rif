@@ -7,3 +7,4 @@ pub(crate) mod consts;
 mod error;
 
 pub use crate::error::RifError;
+pub use crate::rif::*;
