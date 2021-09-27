@@ -2,12 +2,12 @@ use std::path::Path;
 use serde::{ Deserialize, Serialize };
 
 use crate::utils;
-use crate::rif::hook::{HookConfig,HookArgument};
+use crate::rif::hook::{HookArgument, Hook};
 use crate::RifError;
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct Config{ 
-    pub hook: HookConfig,
+pub(crate) struct Config{ 
+    pub hook: Hook,
     pub git_ignore: bool,
     // Set check after update, or --check flag as default
 }
@@ -15,10 +15,10 @@ pub struct Config{
 impl Config {
     pub fn new() -> Self {
         Self {
-            hook : HookConfig {
+            hook : Hook {
                 trigger: false,
-                hook_command: None,
-                hook_argument: HookArgument::None,
+                command: None,
+                arg_type: HookArgument::None,
             },
             // Default is true
             git_ignore: true,

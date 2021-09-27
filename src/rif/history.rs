@@ -54,7 +54,7 @@ impl History {
     ///
     /// * `path` - Target file name
     /// * `msg` - Message to add
-    pub fn add_history(&mut self, path: &PathBuf, msg: &str) -> Result<(), RifError> {
+    pub fn add_history(&mut self, path: &Path, msg: &str) -> Result<(), RifError> {
         // Whether history already exists or not
         if let Some(unit) = self.hist_map.get_mut(path) {
             unit.push(msg.to_owned());
@@ -70,7 +70,7 @@ impl History {
     /// # Args
     ///
     /// * `path` - Target file name
-    pub fn print_history(&self, path: &PathBuf) -> Result<(), RifError> {
+    pub fn print_history(&self, path: &Path) -> Result<(), RifError> {
         if let Some(hist) = self.hist_map.get(path) {
             // Iterator should be reverse to print the newest first.
             for item in hist.iter().rev() {

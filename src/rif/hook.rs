@@ -6,24 +6,17 @@ use serde::{Serialize,Deserialize};
 use crate::models::FileStatus;
 use crate::RifError;
 
-pub struct Hook { 
-    do_trigger: bool,
-    command: Option<String>,
-    arg_type: HookArgument,
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub(crate) struct Hook { 
+    pub trigger: bool,
+    pub command: Option<String>,
+    pub arg_type: HookArgument,
 }
 
 impl Hook {
-    pub fn new(config: HookConfig) -> Self {
-        Self {
-            do_trigger: config.trigger,
-            command: config.hook_command,
-            arg_type: config.hook_argument,
-        }
-    }
-
     pub fn execute(&self, arguments :Vec<(FileStatus ,PathBuf)>) -> Result<(), RifError> {
         // Don't trigger
-        if !self.do_trigger {
+        if !self.trigger {
             return Ok(());
         }
 
@@ -78,13 +71,6 @@ impl Hook {
             Err(RifError::ConfigError(String::from("Hook trigger is true but it's command is null")))
         }
     }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct HookConfig {
-    pub trigger: bool,
-    pub hook_command: Option<String>,
-    pub hook_argument: HookArgument,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

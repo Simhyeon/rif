@@ -45,7 +45,7 @@ impl Relations {
     /// \> <FILE_NAME> <STATUS>
     /// | [REFS]
     /// - > <FILE> <STATUS>
-    pub fn display_file(&self, path: &PathBuf) -> String {
+    pub fn display_file(&self, path: &Path) -> String {
         let single_file = self.files.get(path).unwrap();
         let current_time = single_file.timestamp;
         let mut file_output = String::new();
@@ -72,7 +72,7 @@ impl Relations {
     ///
     /// * `path` - File name to print 
     /// * `depth` - Desired depth value to display
-    pub fn display_file_depth(&self, path: &PathBuf, depth: u8) -> Result<(), RifError> {
+    pub fn display_file_depth(&self, path: &Path, depth: usize) -> Result<(), RifError> {
         if let Some(single_file) = self.files.get(path) {
             print!("> {} {}\n", path.to_str().unwrap().green(), single_file.status);
             if single_file.references.len() != 0 && depth != 1 {
@@ -89,7 +89,7 @@ impl Relations {
     /// # Args
     ///
     /// * `depth` - Desired depth value to display
-    pub fn display_depth(&self, depth: u8) -> Result<(), RifError> {
+    pub fn display_depth(&self, depth: usize) -> Result<(), RifError> {
         for path in self.files.keys().cloned().sorted() {
             // This should always work theoritically
             let single_file = self.files.get(&path).unwrap();
@@ -108,7 +108,7 @@ impl Relations {
     ///
     /// * `path` - A file path(name) to display
     /// * `current_depth` - Current depth in recursion
-    fn display_file_recursive(&self, path: &PathBuf, current_depth: u8, indent_level: u8) -> Result<(), RifError> {
+    fn display_file_recursive(&self, path: &Path, current_depth: usize, indent_level: usize) -> Result<(), RifError> {
         let parent_file = self.files.get(path).unwrap();
         let current_time = parent_file.timestamp;
 
@@ -140,13 +140,13 @@ impl Relations {
     /// # Args
     ///
     /// * `file_path` - A file path to add 
-    pub fn add_file(&mut self, file_path: &PathBuf) -> Result<bool, RifError> {
+    pub fn add_file(&mut self, file_path: &Path) -> Result<bool, RifError> {
         if file_path.is_dir() { return Ok(false); }
 
         // If file exists then executes.
         if file_path.exists() {
             if let None = self.files.get(file_path) {
-                self.files.insert(file_path.clone(), SingleFile::new(file_path.to_path_buf()));
+                self.files.insert(file_path.to_owned(), SingleFile::new(file_path.to_path_buf()));
             } else {
                 return Ok(false);
             }
@@ -165,7 +165,7 @@ impl Relations {
     /// # Args
     ///
     /// * `file_path` - File path(name) to remove from rif.
-    pub fn remove_file(&mut self, file_path: &PathBuf) -> Result<bool, RifError> {
+    pub fn remove_file(&mut self, file_path: &Path) -> Result<bool, RifError> {
         if let None = self.files.remove(file_path) {
             return Ok(false);
         }
@@ -184,7 +184,7 @@ impl Relations {
     ///
     /// * `file_path` - File path(name) to rename.
     /// * `new_name` - New file name to apply
-    pub fn rename_file(&mut self, file_path: &PathBuf, new_name : &PathBuf) -> Result<(), RifError> {
+    pub fn rename_file(&mut self, file_path: &Path, new_name : &Path) -> Result<(), RifError> {
 
         // new name doesn't exist
         if !new_name.exists() {
@@ -221,7 +221,7 @@ impl Relations {
     /// # Args
     ///
     /// * `file_path` - File path(name) to update timestamp
-    pub fn update_filestamp(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
+    pub fn update_filestamp(&mut self, file_path: &Path) -> Result<(), RifError> {
         if file_path.exists() {
             if let Some(file) = self.files.get_mut(file_path) {
                 // If file is not modified, it should not proceed
@@ -249,7 +249,7 @@ impl Relations {
     /// # Args
     ///
     /// * `file_path` - File path(name) to update timestamp
-    pub fn update_filestamp_force(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
+    pub fn update_filestamp_force(&mut self, file_path: &Path) -> Result<(), RifError> {
         if file_path.exists() {
             if let Some(file) = self.files.get_mut(file_path) {
                 let unix_time = utils::get_current_unix_time();
@@ -271,7 +271,7 @@ impl Relations {
     /// # Args
     ///
     /// * `file_path` - File path(name) to discard modification
-    pub fn discard_change(&mut self, file_path: &PathBuf) -> Result<(), RifError> {
+    pub fn discard_change(&mut self, file_path: &Path) -> Result<(), RifError> {
         if file_path.exists() {
             if let Some(file) = self.files.get_mut(file_path) {
                 let unix_time = utils::get_current_unix_time();
@@ -295,7 +295,7 @@ impl Relations {
     ///
     /// * `file_path` - File path(name) to add references
     /// * `ref_files` - File pahts to set as references
-    pub fn add_reference(&mut self, file_path: &PathBuf, ref_files: &HashSet<PathBuf>) -> Result<(), RifError> {
+    pub fn add_reference(&mut self, file_path: &Path, ref_files: &HashSet<PathBuf>) -> Result<(), RifError> {
         // If file doesn't exist, return error
         for file in ref_files.iter() {
             if !file.exists() {
@@ -322,7 +322,7 @@ impl Relations {
     ///
     /// * `file_path` - File path(name) to discard modification
     /// * `ref_files` - File pahts to unset as references
-    pub fn remove_reference(&mut self, file_path: &PathBuf, ref_files: &HashSet<PathBuf>) -> Result<(), RifError> {
+    pub fn remove_reference(&mut self, file_path: &Path, ref_files: &HashSet<PathBuf>) -> Result<(), RifError> {
         // Remove doesn't check existences
         // Becuase artifacts cannot be fixed easily if it is
         if let Some(file) = self.files.get_mut(file_path) {
@@ -340,7 +340,7 @@ impl Relations {
     ///
     /// * `file_path` - File path(name) to set a status
     /// * `file_status` - File status to set for the file
-    pub fn set_file_status(&mut self, file_path: &PathBuf, file_status: FileStatus) -> Result<(), RifError> {
+    pub fn set_file_status(&mut self, file_path: &Path, file_status: FileStatus) -> Result<(), RifError> {
         if let Some(file) = self.files.get_mut(file_path) {
             file.status = file_status;
         } else {
@@ -372,7 +372,7 @@ impl Relations {
     ///
     /// * `target_path` - File path to check sanity
     /// * `sanity_type` - Sanity checking type 
-    fn sanity_check_file(&self, target_path: &PathBuf, sanity_type: SanityType) -> Result<(), RifError> {
+    fn sanity_check_file(&self, target_path: &Path, sanity_type: SanityType) -> Result<(), RifError> {
         // NOTE ::: Question - Why sanity type exists?
         // Answer - |
         // Because indirect reference checking goes through all files and references which is not
@@ -434,7 +434,7 @@ impl Relations {
     ///
     /// On recursion where origin_path is base and current_path is grandchild, it will set ref_status as invalid.
     /// 
-    fn recursive_check(&self, origin_path: &PathBuf, current_path: &PathBuf, ref_status: &mut RefStatus) -> Result<(), RifError> {
+    fn recursive_check(&self, origin_path: &Path, current_path: &Path, ref_status: &mut RefStatus) -> Result<(), RifError> {
         // if current path is not existent return erro
         if !current_path.exists() {
             return Err(RifError::GetFail(format!("File {} doesn't exist", current_path.display())));
@@ -489,10 +489,10 @@ impl Relations {
     /// # Args
     ///
     /// * `target_path` - Target file to start sanity checking
-    fn sanity_get_invalid(&self, target_path: &PathBuf) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
+    fn sanity_get_invalid(&self, target_path: &Path) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
         // If path doesn't exit, it should be "fixed"
         if !target_path.exists() {
-            return Ok(Some((target_path.clone(), target_path.clone())));
+            return Ok(Some((target_path.to_owned(), target_path.to_owned())));
         }
 
         // Check direct self reference.
@@ -528,14 +528,14 @@ impl Relations {
     /// * `origin_path` - Base comparator of recursion. If origin path is detected it is invalid.
     /// * `current_path` - Current recursion path.
     /// * `ref_status` - Current status of references; It is either invalid or valid.
-    fn recursive_find_invalid(&self, origin_path: &PathBuf, current_path: &PathBuf, ref_status: &mut RefStatus) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
+    fn recursive_find_invalid(&self, origin_path: &Path, current_path: &Path, ref_status: &mut RefStatus) -> Result<Option<(PathBuf, PathBuf)>, RifError> {
         // if current path doesn't exit it should be fixed
         if !current_path.exists() {
-            return Ok(Some((origin_path.clone(), current_path.clone())));
+            return Ok(Some((origin_path.to_owned(), current_path.to_owned())));
         }
 
         if origin_path == current_path {
-            return Ok(Some((current_path.clone(), origin_path.clone())));
+            return Ok(Some((current_path.to_owned(), origin_path.to_owned())));
         } else if let RefStatus::Valid = ref_status {
             for child in self.files.get(current_path).unwrap().references.iter() {
                 // Current path is same with child which means self referencing 
@@ -557,7 +557,7 @@ impl Relations {
     /// If rif's last modified time is oldere than system's modified time, it is considered as modified.
     pub fn track_modified_files(&self) -> Result<(), RifError> {
         let mut display_text: String = String::new();
-        let mut modified: Vec<&PathBuf> = vec![];
+        let mut modified: Vec<&Path> = vec![];
 
         for (path, file) in self.files.iter() {
             let system_time = utils::get_file_unix_time(path)?;
@@ -629,6 +629,7 @@ impl Relations {
         Ok(())
     }
 
+    // Ok, what the fuck is happening in here?
     pub fn find_depends(&self, target_path: &PathBuf) -> Result<Vec<PathBuf>, RifError> {
         let mut depends = Vec::new();
 
@@ -719,7 +720,7 @@ impl SingleFile {
     /// # Args
     /// 
     /// * `new_name` - New name to update
-    pub fn update_name(&mut self, new_name: &PathBuf) {
+    pub fn update_name(&mut self, new_name: &Path) {
         self.name = new_name.file_name().unwrap().to_str().unwrap().to_owned();
     }
 }
