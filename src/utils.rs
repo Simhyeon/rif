@@ -15,8 +15,8 @@ use crate::RifError;
 /// # Args
 ///
 /// * `path` - File path to get system timestamp
-pub fn get_file_unix_time(path: &PathBuf) -> Result<NaiveDateTime, RifError> {
-    let metadata = std::fs::metadata(&path)?;
+pub fn get_file_unix_time(path: &Path) -> Result<NaiveDateTime, RifError> {
+    let metadata = std::fs::metadata(path)?;
     // File
     let mtime = FileTime::from_last_modification_time(&metadata);
     // Convert to unix_time
@@ -236,5 +236,13 @@ pub fn get_history_path(path : Option<impl AsRef<Path>>) -> Result<PathBuf, RifE
         Ok(path.as_ref().join(RIF_HIST_FILE))
     } else {
         Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_HIST_FILE))
+    }
+}
+
+pub fn get_meta_path(path : Option<impl AsRef<Path>>) -> Result<PathBuf, RifError> {
+    if let Some(path) = path {
+        Ok(path.as_ref().join(RIF_META))
+    } else {
+        Ok(std::env::current_dir()?.join(RIF_DIECTORY).join(RIF_META))
     }
 }
