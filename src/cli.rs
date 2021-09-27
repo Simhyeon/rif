@@ -1,10 +1,5 @@
-use std::collections::HashSet;
-use std::path::{PathBuf, Path};
-
-use colored::*;
+use std::path::Path;
 use clap::clap_app;
-use crate::checker::Checker;
-use crate::rif::{config::Config, history::History, rel::Relations};
 use crate::RifError;
 use crate::Rif;
 use crate::utils;
@@ -186,18 +181,14 @@ impl Cli {
     /// Check if `set` subcommand was given and parse subcommand options
     fn subcommand_set(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("set") {
-            let rif_path = utils::get_rif_directory()?;
-
             if let Some(file) = sub_match.value_of("FILE") {
                 if let Some(refs) = sub_match.values_of("REFS") {
-                    let path = PathBuf::from(file);
-                    let refs_vec: Vec<&str> = refs.collect();
-                    let refs: HashSet<PathBuf> = refs_vec.iter().map(|a| PathBuf::from(a)).collect();
-                    let mut relations = Relations::read_from_file(Some(&rif_path))?;
+                    let file = Path::new(file);
+                    let refs = refs.map(|p| Path::new(p)).collect();
 
-                    relations.add_reference(&path, &refs)?;
-                    relations.save_to_file(Some(&rif_path))?;
-                    println!("Added references to: {}", file);
+                    let rif_path = utils::get_rif_directory()?;
+                    let mut rif = Rif::new(Some(&rif_path))?;
+                    rif.set(file, &refs)?;
                 }
             } 
         } 
@@ -207,18 +198,14 @@ impl Cli {
     /// Check if `unset` subcommand was given and parse subcommand options
     fn subcommand_unset(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("unset") {
-            let rif_path = utils::get_rif_directory()?;
-
             if let Some(file) = sub_match.value_of("FILE") {
                 if let Some(refs) = sub_match.values_of("REFS") {
-                    let path = PathBuf::from(file);
-                    let refs_vec: Vec<&str> = refs.collect();
-                    let refs: HashSet<PathBuf> = refs_vec.iter().map(|a| PathBuf::from(a)).collect();
-                    let mut relations = Relations::read_from_file(Some(&rif_path))?;
+                    let file = Path::new(file);
+                    let refs = refs.map(|p| Path::new(p)).collect();
 
-                    relations.remove_reference(&path, &refs)?;
-                    relations.save_to_file(Some(&rif_path))?;
-                    println!("Removed references from: {}", file);
+                    let rif_path = utils::get_rif_directory()?;
+                    let mut rif = Rif::new(Some(&rif_path))?;
+                    rif.unset(file, &refs)?;
                 }
             } 
         } 
@@ -257,27 +244,10 @@ impl Cli {
 
     /// Check if `check` subcommand was given and parse subcommand options
     fn subcommand_check(matches: &clap::ArgMatches) -> Result<(), RifError> {
-        if let Some(sub_match) = matches.subcommand_matches("check") {
+        if let Some(_) = matches.subcommand_matches("check") {
             let rif_path = utils::get_rif_directory()?;
-            let mut relations = Relations::read_from_file(Some(&rif_path))?;
-
-            // Automatically update all files that has been modified
-            if sub_match.is_present("update") {
-                for item in relations.get_modified_files()?.iter() {
-                    relations.update_filestamp(item)?;
-                }
-            }
-
-            let mut checker = Checker::with_relations(&relations)?;
-            let changed_files = checker.check(&mut relations)?;
-            relations.save_to_file(Some(&rif_path))?;
-            println!("Rif check complete");
-
-            if changed_files.len() != 0 {
-                println!("\n///Hook Output///");
-                let config = Config::read_from_file(Some(&rif_path))?;
-                config.hook.execute(changed_files)?;
-            }
+            let mut rif = Rif::new(Some(&rif_path))?;
+            rif.check()?;
         } 
         Ok(())
     }
@@ -285,21 +255,11 @@ impl Cli {
     /// Check if `sanity` subcommand was given and parse subcommand options
     fn subcommand_sanity(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("sanity") {
+            let fix = sub_match.is_present("fix");
+
             let rif_path = utils::get_rif_directory()?;
-
-            // NOTE ::: You don't have to manually call sanity check
-            // Because read operation always check file sanity after reading a file
-            // and return erros if sanity was not assured.
-            let mut raw_relations = Relations::read_as_raw(Some(&rif_path))?;
-
-            if sub_match.is_present("fix") {
-                raw_relations.sanity_fix()?;
-                raw_relations.save_to_file(Some(&rif_path))?;
-                println!("Sucessfully fixed the rif file");
-            } else {
-                raw_relations.sanity_check()?;
-                println!("Sucessfully checked the rif file");
-            }
+            let mut rif = Rif::new(Some(&rif_path))?;
+            rif.sanity(fix)?;
         } 
         Ok(())
     }
@@ -319,40 +279,25 @@ impl Cli {
     
     fn subcommand_depend(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("depend") {
-            let rif_path = utils::get_rif_directory()?;
             if let Some(file) = sub_match.value_of("FILE") {
-                let relations = Relations::read_from_file(Some(&rif_path))?;
-                let dependes = relations.find_depends(&PathBuf::from(file))?;
-                println!("Files that depends on \"{}\"", file);
-                println!("=====");
-                for item in dependes {
-                    println!("{}", item.display().to_string().green());
-                }
+                let rif_path = utils::get_rif_directory()?;
+                let rif = Rif::new(Some(&rif_path))?;
+                rif.depend(Path::new(file))?;
             }
         }
 
         Ok(())
     }
 
+    /// Check if `data` subcommand is given
     fn subcommand_data(matches: &clap::ArgMatches) -> Result<(), RifError> {
         if let Some(sub_match) = matches.subcommand_matches("data") {
+            let data_type = sub_match.value_of("TYPE");
+            let compact = sub_match.is_present("compact");
+
             let rif_path = utils::get_rif_directory()?;
-            if let Some(file) = sub_match.value_of("TYPE") {
-                match file {
-                    "history" => {
-                        let rif_history = History::read_from_file(Some(&rif_path))?;
-                        println!("{:#?}", rif_history);
-                    }
-                    _ => () // This doesn't happen
-                }
-            } else {
-                let relations = Relations::read_from_file(Some(&rif_path))?;
-                if sub_match.is_present("compact") {
-                    println!("{:?}", relations);
-                } else {
-                    println!("{:#?}", relations);
-                }
-            }
+            let rif = Rif::new(Some(&rif_path))?;
+            rif.data(data_type, compact)?;
         }
 
         Ok(())
