@@ -12,6 +12,13 @@ pub(crate) struct Meta {
 }
 
 impl Meta {
+    pub fn new() -> Self {
+        Self {
+            to_be_added: HashSet::new(),
+            to_be_forced: HashSet::new(),
+        }
+    }
+
     pub fn read_from_file(path: Option<impl AsRef<Path>>) -> Result<Self, RifError> {
         let path = utils::get_meta_path(path)?;
         let result = bincode::deserialize::<Self>(&std::fs::read(path)?);

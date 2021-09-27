@@ -4,7 +4,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
 use crate::RifError;
-use colored::*;
 
 /// Struct history of rif update messags
 ///
@@ -78,7 +77,7 @@ impl History {
             }
         }
         else {
-            println!("{}", "  No history".red());
+            println!("{}", utils::red("  No history"));
             // REF
             // No history was considered error before, however I don't think it should be
             //Err(RifError::GetFail(format!("Failed get histroy with given path : {}", path.display())))
