@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use colored::*;
+use crate::utils;
 
 /// File status of any file.
 ///
@@ -15,9 +15,9 @@ pub enum FileStatus {
 impl std::fmt::Display for FileStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FileStatus::Stale => write!(f, "{}", "[Stale]".red()),
-            FileStatus::Fresh => write!(f, "{}", "[Fresh]".blue()),
-            FileStatus::Neutral => write!(f, "{}", "[Neutral]".green()),
+            FileStatus::Stale => write!(f, "{}", utils::red("[Stale]")),
+            FileStatus::Fresh => write!(f, "{}", utils::blue("[Fresh]")),
+            FileStatus::Neutral => write!(f, "{}", utils::green("[Neutral]")),
         }
     }
 }
