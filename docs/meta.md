@@ -1,5 +1,18 @@
 ## TODO
 
+### Add with directory doesn't work.
+
+Welp... it happends to be not working!
+
+If directory is added, it simply addes directory to "add_to_register" which
+will add files proeprly if commited however there are problems.
+
+You cannot detect whether your file is added or not and status will still
+print. which is quite frustrating. And If I add new mechanic to strip path and
+yatti yatta things... Code base will much harder to maintain.
+
+Therefore I need to make add <DIR> to be expanded to files input.
+
 ### Imminent
 
 **Structure sanity is mendatory**
