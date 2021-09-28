@@ -60,7 +60,7 @@ impl Relations {
             file_output.push_str(&format!("\n  - > {} {}", ref_item.display(), self.files.get(ref_item).unwrap().status));
             if let FileStatus::Stale = single_file.status {
                 if current_time < self.files.get(ref_item).unwrap().timestamp {
-                    file_output.push_str(&format!(" {}", utils::yellow("Updated")));
+                    file_output.push_str(&format!("{}", utils::yellow("(u)")));
                 }
             }
         }
@@ -557,11 +557,17 @@ impl Relations {
     ///
     /// Modfication is determined by comparing rif's last modified and system's modifid time.
     /// If rif's last modified time is oldere than system's modified time, it is considered as modified.
-    pub fn track_modified_files(&self) -> Result<(), RifError> {
+    pub fn track_modified_files<'a>(&'a self, to_be_added_later : impl IntoIterator<Item = &'a PathBuf> + 'a) -> Result<(), RifError> {
         let mut display_text: String = String::new();
         let mut modified: Vec<&Path> = vec![];
+        let mut iter = to_be_added_later.into_iter();
 
         for (path, file) in self.files.iter() {
+            // If it is in to_be_added_later list, don't print
+            if iter.any(|x| x == path) {
+                continue;
+            }
+
             let system_time = utils::get_file_unix_time(path)?;
             if file.last_modified < system_time {
                 modified.push(path);
