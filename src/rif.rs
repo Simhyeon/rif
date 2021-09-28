@@ -112,7 +112,7 @@ impl Rif {
         if let Some(files) = files {
             for file in files {
                 let path = file.as_ref();
-                self.meta.remove(&path);
+                self.meta.remove_add_queue(&path);
             } // for loop end
         } else {
             // No argument, revert everything
@@ -129,6 +129,16 @@ impl Rif {
         // Literaly, commit needs to resolve all deleted files
         if self.relation.get_deleted_files().len() != self.meta.to_be_deleted.len() {
             return Err(RifError::CommitFail("Commit without deleted files are illegal. Rejected".to_owned()))
+        }
+
+        // delete
+        for file in self.meta.to_be_deleted.clone().iter() {
+            self.remove_file(file)?;
+        }
+
+        // Register new files
+        for file in self.meta.to_be_registerd.clone().into_iter() {
+            self.register_new_file(&file, message)?;
         }
 
         // force updates
@@ -153,8 +163,7 @@ impl Rif {
         }
 
         // Clear meta
-        self.meta.to_be_forced.clear();
-        self.meta.to_be_added.clear();
+        self.meta.clear();
 
         // Save files
         self.meta.save_to_file(self.root_path.as_ref())?;
@@ -197,10 +206,10 @@ impl Rif {
 
     pub fn remove(&mut self, files: &Vec<impl AsRef<Path>>) -> Result<(), RifError> {
         for file in files {
-            let path = file.as_ref().to_owned();
-            self.relation.remove_file(&path)?;
+            self.remove_file(file.as_ref())?;
         }
         self.relation.save_to_file(self.root_path.as_ref())?;
+        self.history.save_to_file(self.root_path.as_ref())?;
         Ok(())
     }
 
@@ -230,8 +239,21 @@ impl Rif {
 
         if let Some(_) = to_be_added_later.peek() {
             println!("# Changes to be commited :");
-            for item in to_be_added_later {
-                println!("    {}", utils::green(&item.to_str().unwrap()));
+            for item in &self.meta.to_be_registerd {
+                let format = format!("    new file : {}", &item.to_str().unwrap());
+                println!("{}", utils::green(&format));
+            }
+            for item in &self.meta.to_be_added {
+                let format = format!("    modified : {}", &item.to_str().unwrap());
+                println!("{}", utils::green(&format));
+            }
+            for item in &self.meta.to_be_forced {
+                let format = format!("    forced   : {}", &item.to_str().unwrap());
+                println!("{}", utils::green(&format));
+            }
+            for item in &self.meta.to_be_deleted {
+                let format = format!("    deleted  : {}", &item.to_str().unwrap());
+                println!("{}", utils::green(&format));
             }
             println!("");
         }
@@ -244,7 +266,7 @@ impl Rif {
             // Default black list only includes .rif file for now
             // Currently only check relative paths,or say, stripped path
             println!("\n# Untracked files :");
-            self.relation.track_unregistered_files(&self.black_list)?;
+            self.relation.track_unregistered_files(&self.black_list, &self.meta.to_be_registerd)?;
         }
 
         if verbose {
@@ -369,6 +391,17 @@ impl Rif {
     }
 
     fn add_new_file(&mut self, file: &Path) -> Result<(), RifError> {
+        self.meta.to_be_registerd.insert(file.to_owned());
+        Ok(())
+    }
+
+    fn remove_file(&mut self, file: &Path) -> Result<(), RifError> {
+        self.relation.remove_file(file)?;
+        self.history.remove_file(file)?;
+        Ok(())
+    }
+
+    fn register_new_file(&mut self, file: &Path, message: Option<&str>) -> Result<(), RifError> {
         // Closure to recursively get inside directory and add files
         let mut closure = |entry_path : PathBuf| -> Result<LoopBranch, RifError> {
             let striped_path = utils::relativize_path(&entry_path)?;
@@ -400,6 +433,7 @@ impl Rif {
             // THis returns bools, is it not needed?
             // File was not added e.g. file already exists
             self.relation.add_file(&file)?;
+            self.history.add_history(&file, message.unwrap_or(""))?;
         }
         Ok(())
     }
