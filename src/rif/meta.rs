@@ -7,8 +7,9 @@ use crate::utils;
 /// Meta information related to rif directory
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct Meta {
-    to_be_forced: HashSet<PathBuf>,
-    to_be_added: HashSet<PathBuf>,
+    pub to_be_forced: HashSet<PathBuf>,
+    pub to_be_added: HashSet<PathBuf>,
+    pub to_be_deleted: HashSet<PathBuf>,
 }
 
 impl<'a> Meta {
@@ -16,10 +17,12 @@ impl<'a> Meta {
         Self {
             to_be_added: HashSet::new(),
             to_be_forced: HashSet::new(),
+            to_be_deleted : HashSet::new(),
         }
     }
 
-    pub fn add(&mut self, file : &Path, force: bool) {
+    /// Add to_be_added
+    pub fn queue_added(&mut self, file : &Path, force: bool) {
         if !self.to_be_added.contains(file) && !self.to_be_forced.contains(file) {
             if force {
                 self.to_be_forced.insert(file.to_owned());
@@ -29,14 +32,28 @@ impl<'a> Meta {
         }
     }
 
-    pub fn remove(&mut self, file : &Path, force: bool) {
+    /// Add to_be_added
+    pub fn queue_deleted(&mut self, file : &Path) {
+        self.remove(file);
+        self.to_be_deleted.insert(file.to_owned());
+    }
+
+    pub fn remove(&mut self, file : &Path) {
         if self.to_be_added.contains(file) || self.to_be_forced.contains(file) {
-            if force {
-                self.to_be_forced.remove(file);
-            } else {
-                self.to_be_added.remove(file);
-            }
+            self.to_be_forced.remove(file);
+            self.to_be_added.remove(file);
         }
+    }
+
+    pub fn remove_non_exsitent(&mut self) {
+        self.to_be_added.retain(|path| path.exists());
+        self.to_be_forced.retain(|path| path.exists());
+    }
+
+    pub fn clear(&mut self) {
+        self.to_be_added.clear();
+        self.to_be_forced.clear();
+        self.to_be_deleted.clear();
     }
 
     pub fn to_be_added_later(&'a self) -> impl Iterator<Item = &PathBuf> + 'a {
