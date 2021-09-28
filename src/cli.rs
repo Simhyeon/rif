@@ -138,8 +138,10 @@ impl Cli {
                 let rif_path = utils::get_rif_directory()?;
                 let mut rif = Rif::new(Some(&rif_path))?;
                 rif.add(&files, force)?;
-            } 
-        } 
+            } else {
+                eprintln!("No argument for add");
+            }
+        }
         Ok(())
     }
 
@@ -152,7 +154,7 @@ impl Cli {
 
             let rif_path = utils::get_rif_directory()?;
             let mut rif = Rif::new(Some(&rif_path))?;
-            rif.revert(&files)?;
+            rif.revert(files.as_ref())?;
         } 
         Ok(())
     }
@@ -178,7 +180,9 @@ impl Cli {
 
                 let mut rif = Rif::new(Some(&rif_path))?;
                 rif.remove(&files)?;
-            } 
+            } else {
+                eprintln!("No argument for rm");
+            }
         }
         Ok(())
     }
@@ -191,8 +195,13 @@ impl Cli {
                     let rif_path = utils::get_rif_directory()?;
                     let mut rif = Rif::new(Some(&rif_path))?;
                     rif.rename(source_name, new_name)?;
+                } else {
+                    eprintln!("Mv needs second argument as a new file name");
                 }
-            } 
+            } else {
+                eprintln!("No argument for mv");
+            }
+
         }
         Ok(())
     }
@@ -208,8 +217,12 @@ impl Cli {
                     let rif_path = utils::get_rif_directory()?;
                     let mut rif = Rif::new(Some(&rif_path))?;
                     rif.set(file, &refs)?;
+                } else {
+                    eprintln!("Set requires second argument as references");
                 }
-            } 
+            } else {
+                eprintln!("No argument for set");
+            }
         } 
         Ok(())
     }
@@ -225,8 +238,13 @@ impl Cli {
                     let rif_path = utils::get_rif_directory()?;
                     let mut rif = Rif::new(Some(&rif_path))?;
                     rif.unset(file, &refs)?;
+                } else {
+                    eprintln!("Unset requires second argments as references");
                 }
-            } 
+
+            } else {
+                eprintln!("No argument for unset");
+            }
         } 
         Ok(())
     }
@@ -239,7 +257,9 @@ impl Cli {
                 let rif_path = utils::get_rif_directory()?;
                 let mut rif = Rif::new(Some(&rif_path))?;
                 rif.discard(file)?;
-            } 
+            } else {
+                eprintln!("No argument for discard");
+            }
         } 
         Ok(())
     }
@@ -290,7 +310,7 @@ impl Cli {
             let verbose = sub_match.is_present("verbose");
 
             let rif_path = utils::get_rif_directory()?;
-            let rif = Rif::new(Some(&rif_path))?;
+            let mut rif = Rif::new(Some(&rif_path))?;
             rif.status(ignore, verbose)?;
         } 
         Ok(())
@@ -302,7 +322,10 @@ impl Cli {
                 let rif_path = utils::get_rif_directory()?;
                 let rif = Rif::new(Some(&rif_path))?;
                 rif.depend(Path::new(file))?;
+            } else {
+                eprintln!("No argument for depend");
             }
+
         }
 
         Ok(())
