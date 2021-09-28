@@ -82,10 +82,20 @@ impl Rif {
         for file in files {
             let mut path = file.as_ref().to_owned();
 
+            // If file doesn't exist, simply ignore
+            if !path.exists() {
+                continue;
+            }
+
             // If given value is "." which means that input value has not been expanded.
             // substitute with current working directory
             if path.to_str().unwrap() == "." {
                 path = std::env::current_dir()?;
+                self.add_directory(&path)?;
+                continue;
+            } else if path.is_dir() {
+                self.add_directory(&path)?;
+                continue;
             }
 
             // Don't do anything if file is in blacklist
@@ -112,6 +122,7 @@ impl Rif {
         if let Some(files) = files {
             for file in files {
                 let path = file.as_ref();
+                // Removes single item
                 self.meta.remove_add_queue(&path);
             } // for loop end
         } else {
@@ -435,6 +446,50 @@ impl Rif {
             self.relation.add_file(&file)?;
             self.history.add_history(&file, message.unwrap_or(""))?;
         }
+        Ok(())
+    }
+    
+    fn add_directory(&mut self, dir: &Path) -> Result<(), RifError> {
+        let tracked = self.relation.files.keys().cloned().collect::<Vec<PathBuf>>();
+        let modified = self.relation.get_modified_files()?.clone();
+        let mut to_be_added = HashSet::new();
+        let mut to_be_registerd = HashSet::new();
+        // Closure to recursively get inside directory and add files
+        let mut closure = |entry_path : PathBuf| -> Result<LoopBranch, RifError> {
+            let striped_path = utils::relativize_path(&entry_path)?;
+
+            // Early return if file or directory is in black_list
+            // Need to check the black_list once more because closure checks nested
+            // directory that is not checked in outer for loop
+            if let Some(_) = self.black_list.get(&striped_path) {
+                if striped_path.is_dir() {
+                    return Ok(LoopBranch::Exit);
+                } 
+                else {
+                    return Ok(LoopBranch::Continue);
+                }
+            }
+
+            // If directory go inside and don't add the directory
+            if striped_path.is_dir() {
+                return Ok(LoopBranch::Continue);
+            } 
+
+            if modified.contains(&striped_path) {
+                // Is modified file
+                to_be_added.insert(striped_path);
+            } else if !tracked.contains(&striped_path) {
+                // NOt in a tracking file
+                to_be_registerd.insert(striped_path);
+            }
+            Ok(LoopBranch::Continue)
+        }; // Closure end here 
+
+        utils::walk_directory_recursive(dir, &mut closure)?;
+
+        self.meta.to_be_registerd.extend(to_be_registerd);
+        self.meta.to_be_added.extend(to_be_added);
+
         Ok(())
     }
 
