@@ -168,7 +168,7 @@ impl Checker {
             if let Some(file) = rif_list.files.get_mut(target_key) {
                 // Print status changes into stdout
                 if file.status != status {
-                    println!("Status update \"{}\" {} -> {}", utils::green(&target_key.display().to_string()), file.status, status);
+                    println!("Status update \"{}\" {}", utils::green(&target_key.display().to_string()), status);
                     // Add file to changed files
                     changed_files.push((status, target_key.to_path_buf()));
                 }
