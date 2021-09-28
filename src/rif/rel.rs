@@ -559,10 +559,16 @@ impl Relations {
     /// If rif's last modified time is oldere than system's modified time, it is considered as modified.
     pub fn track_modified_files<'a>(&'a self, to_be_added_later : impl IntoIterator<Item = &'a PathBuf> + 'a) -> Result<(), RifError> {
         let mut display_text: String = String::new();
+        let mut deleted: Vec<&Path> = vec![];
         let mut modified: Vec<&Path> = vec![];
         let mut iter = to_be_added_later.into_iter();
 
         for (path, file) in self.files.iter() {
+            // If file doesn't exist, print as delted
+            if !path.exists() {
+                deleted.push(path);
+            }
+
             // If it is in to_be_added_later list, don't print
             if iter.any(|x| x == path) {
                 continue;
@@ -574,16 +580,34 @@ impl Relations {
             }
         }
 
-        if modified.len() != 0 {
-            for file in modified.iter() {
-                display_text.push_str(&format!("    {}\n", utils::red(&file.display().to_string())));
-            }
-        } else {
-            display_text.push_str(&format!("    All files are up to date.\n"));
+        for file in deleted.iter() {
+            let text = utils::red(&format!("    deleted : {}",file.display())).to_string();
+            display_text.push_str(&text);
+        }
+        for file in modified.iter() {
+            let text = utils::red(&format!("    modified : {}",file.display())).to_string();
+            display_text.push_str(&text);
         }
 
-        print!("{}", display_text);
+        if modified.len() == 0 && deleted.len() == 0 {
+            println!("    All files are up to date.\n");
+        } else {
+            print!("{}", display_text);
+        }
+
         Ok(())
+    }
+
+    pub fn get_deleted_files(&self) -> HashSet<&Path> {
+        let mut set = HashSet::new();
+        for path in self.files.keys() {
+            // If file doesn't exist, print as delted
+            if !path.exists() {
+                set.insert(path.as_path());
+            }
+        }
+
+        set
     }
 
     /// Get list of modified files
