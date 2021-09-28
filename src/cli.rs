@@ -21,6 +21,7 @@ impl Cli {
     fn parse_subcommands(args: &clap::ArgMatches) -> Result<(), RifError> {
         Cli::subcommand_init(args)?;
         Cli::subcommand_add(args)?;
+        Cli::subcommand_revert(args)?;
         Cli::subcommand_commit(args)?;
         Cli::subcommand_remove(args)?;
         Cli::subcommand_rename(args)?;
@@ -49,6 +50,10 @@ impl Cli {
                 (about: "Add file to rif")
                 (@arg FILE: ... +required "File to add")
                 (@arg force: -f --force "Force add")
+            )
+            (@subcommand revert =>
+                (about: "Revert addition")
+                (@arg FILE: ... +required "File to revert")
             )
             (@subcommand data =>
                 (about: "Print data as json format")
@@ -134,6 +139,20 @@ impl Cli {
                 let mut rif = Rif::new(Some(&rif_path))?;
                 rif.add(&files, force)?;
             } 
+        } 
+        Ok(())
+    }
+
+    /// Check if `revert` subcommand was given and parse subcommand options
+    fn subcommand_revert(matches: &clap::ArgMatches) -> Result<(), RifError>{
+        if let Some(sub_match) = matches.subcommand_matches("add") {
+            let files = sub_match
+                .values_of("FILE")
+                .map(|s| s.into_iter().map(|s| Path::new(s)).collect());
+
+            let rif_path = utils::get_rif_directory()?;
+            let mut rif = Rif::new(Some(&rif_path))?;
+            rif.revert(&files)?;
         } 
         Ok(())
     }
