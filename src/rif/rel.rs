@@ -558,19 +558,20 @@ impl Relations {
     /// Modfication is determined by comparing rif's last modified and system's modifid time.
     /// If rif's last modified time is oldere than system's modified time, it is considered as modified.
     pub fn track_modified_files<'a>(&'a self, to_be_added_later : impl IntoIterator<Item = &'a PathBuf> + 'a) -> Result<(), RifError> {
-        let mut display_text: String = String::new();
+        let mut deleted_log: String = String::new();
+        let mut modified_log: String = String::new();
         let mut deleted: Vec<&Path> = vec![];
         let mut modified: Vec<&Path> = vec![];
-        let mut iter = to_be_added_later.into_iter();
+        let iter = to_be_added_later.into_iter().map(|p| p.to_owned()).collect::<Vec<PathBuf>>();
 
         for (path, file) in self.files.iter() {
+            if iter.contains(path) {
+                continue;
+            }
+
             // If file doesn't exist, print as delted
             if !path.exists() {
                 deleted.push(path);
-            }
-
-            // If it is in to_be_added_later list, don't print
-            if iter.any(|x| x == path) {
                 continue;
             }
 
@@ -581,18 +582,19 @@ impl Relations {
         }
 
         for file in deleted.iter() {
-            let text = utils::red(&format!("    deleted : {}",file.display())).to_string();
-            display_text.push_str(&text);
+            let text = utils::red(&format!("    deleted  : {}",file.display())).to_string();
+            deleted_log.push_str(&text);
         }
         for file in modified.iter() {
             let text = utils::red(&format!("    modified : {}",file.display())).to_string();
-            display_text.push_str(&text);
+            modified_log.push_str(&text);
         }
 
         if modified.len() == 0 && deleted.len() == 0 {
-            println!("    All files are up to date.\n");
+            println!("    All files are up to date.");
         } else {
-            print!("{}", display_text);
+            println!("{}", deleted_log);
+            print!("{}", modified_log);
         }
 
         Ok(())
@@ -633,11 +635,11 @@ impl Relations {
     /// # Args
     ///
     /// * `black_list ` - Blacklists to to ignore when tracking unregistered files
-    pub fn track_unregistered_files(&self, black_list: &HashSet<PathBuf>) -> Result<(), RifError> {
+    pub fn track_unregistered_files(&self, black_list: &HashSet<PathBuf>, to_be_registerd: &HashSet<PathBuf>) -> Result<(), RifError> {
         utils::walk_directory_recursive(&std::env::current_dir()?, &mut | walk_path | -> Result<LoopBranch, RifError> {
             let stripped = utils::strip_path(&walk_path, None)?;
-            // Path is not in black list else, is in the black list
-            if !black_list.contains(&stripped) {
+            // Path is not in black list else and not to be registered
+            if !black_list.contains(&stripped) && !to_be_registerd.contains(&walk_path) {
                 if !stripped.is_dir() {
                     // File is not in tracked files
                     if let None = self.files.get(&walk_path) {
