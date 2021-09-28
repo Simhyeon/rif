@@ -1,17 +1,30 @@
 ## TODO
 
-### Currently refactoring logic codebase
+### Imminent
+
+**Structure sanity is mendatory**
+
+There are some concerns that wer not properly treated before. For example
+there could have been deleted but it hasn't been handled. I made a code
+within  track modified files to list deleted files. But it should do more
+than that. I personally thnk, if there is deleted file, check should not work
+because reading filestamp from deleted file is absurd you know.
+
+Therefore, commit and check should be prohibited when there are deleted files.
+
+Status should update to be added later data before printing out.
 
 ### Prepare for integration with gdengine
 
-**Bugs**
-- Add, commit workflow doees work. But add force doesn't update filestamp
-
 **MISC**
-* [ ] Add new subcommand revert
+I'm not sure if everything is properly done for. Needs some testing
+* [x] Add new subcommand revert
 - THis removes to be added, same with git revert
-* [ ] "To be added" should check file sanity
+* [x] "To be added" should check file sanity
 - Files should be cleared if files are not exsitent at the time
+* [x] Detect deleted files
+- I made a simple code to detect deleted files, but... it should do more than
+that.
 * [ ] Add error messages when necessary information was not given 
 - Currently nothing happens which is frustrating
 * [ ] Currently nested gitignore or rifignore is not respected
@@ -20,18 +33,15 @@
 * [x] make Rif struct that handls all operations
 
 **Refactor Rif operations **
-* [ ] Rename(mv)
-- Check operation logics
 * [ ] Add
 - Add a directory
     - Done, but needs testing if this is ok, since it was not possible before
 - Force option with stale files, with dot operation combined
 - Depend options that set references to given file with added file
-* [ ] List(ls)
-- Show uncommited logs
+* [x] List(ls)
 
 **Improve formatting**
-* [ ] Fresh tag is redundant, just remove it only show stale one 
+* [x] Fresh tag is redundant, just remove it only show stale one 
 
 * [ ] Make a library
     * [ ] Ergonomic and useful exposed interface
