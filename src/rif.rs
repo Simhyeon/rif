@@ -70,7 +70,7 @@ impl Rif {
 
         // Also crate rifignore file
         if create_rif_ignore {
-            std::fs::write(".rifignore","")?;
+            std::fs::write(".rifignore",".git")?;
         }
         Ok(())
     }
@@ -104,6 +104,25 @@ impl Rif {
 
         // Update relation file
         self.relation.save_to_file(self.root_path.as_ref())?;
+        self.meta.save_to_file(self.root_path.as_ref())?;
+        Ok(())
+    }
+
+    pub fn revert(&mut self, files: Option<&Vec<impl AsRef<Path>>>) -> Result<(), RifError> {
+        if let Some(files) = files {
+            for file in files {
+                let mut path = file.as_ref().to_owned();
+
+                // If given value is "." which means that input value has not been expanded.
+                // substitute with current working directory
+                if path.to_str().unwrap() == "." {
+                    path = std::env::current_dir()?;
+                }
+
+            } // for loop end
+        }
+
+        self.meta.save_to_file(self.root_path.as_ref())?;
         Ok(())
     }
 
@@ -126,7 +145,7 @@ impl Rif {
         }
 
         // Check if added files are not empty
-        if self.meta.to_be_added.len() != 0 {
+        if self.meta.to_be_added_later().count() != 0 {
             self.check_exec()?;
         }
 
@@ -137,6 +156,7 @@ impl Rif {
         // Save files
         self.meta.save_to_file(self.root_path.as_ref())?;
         self.relation.save_to_file(self.root_path.as_ref())?;
+        self.history.save_to_file(self.root_path.as_ref())?;
 
         Ok(())
     }
@@ -196,11 +216,21 @@ impl Rif {
     // TODO 
     // Add staus line for currently added files which is stored in meta file
     pub fn status(&self, ignore: bool, verbose: bool) -> Result<(), RifError> {
+        let mut to_be_added_later = self.meta.to_be_added_later().peekable();
+
+        if let Some(_) = to_be_added_later.peek() {
+            println!("# Changes to be commited :");
+            for item in to_be_added_later {
+                println!("    {}", utils::green(&item.to_str().unwrap()));
+            }
+            println!("");
+        }
+    
         println!("# Modified files :");
-        self.relation.track_modified_files()?;
+        self.relation.track_modified_files(self.meta.to_be_added_later())?;
 
         // Ignore untracked files
-        if ignore {
+        if !ignore {
             // Default black list only includes .rif file for now
             // Currently only check relative paths,or say, stripped path
             println!("\n# Untracked files :");
@@ -233,6 +263,9 @@ impl Rif {
     pub fn data(&self, data_type: Option<&str>, compact: bool) -> Result<(), RifError> {
         if let Some(data_type) = data_type {
             match data_type {
+                "meta"  => {
+                    println!("{:#?}", self.meta);
+                }
                 "history" => {
                     println!("{:#?}", self.history);
                 }
@@ -289,7 +322,6 @@ impl Rif {
         // Check relations(impact)
         let mut checker = Checker::with_relations(&self.relation)?;
         let changed_files = checker.check(&mut self.relation)?;
-        println!("Rif check complete");
 
         if changed_files.len() != 0 && self.config.hook.trigger {
             println!("\nHook Output");
