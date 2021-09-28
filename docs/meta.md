@@ -1,60 +1,14 @@
 ## TODO
 
-### Add with directory doesn't work.
-
-Welp... it happends to be not working!
-
-If directory is added, it simply addes directory to "add_to_register" which
-will add files proeprly if commited however there are problems.
-
-You cannot detect whether your file is added or not and status will still
-print. which is quite frustrating. And If I add new mechanic to strip path and
-yatti yatta things... Code base will much harder to maintain.
-
-Therefore I need to make add <DIR> to be expanded to files input.
-
-### Imminent
-
-**Structure sanity is mendatory**
-
-There are some concerns that wer not properly treated before. For example
-there could have been deleted but it hasn't been handled. I made a code
-within  track modified files to list deleted files. But it should do more
-than that. I personally thnk, if there is deleted file, check should not work
-because reading filestamp from deleted file is absurd you know.
-
-Therefore, commit and check should be prohibited when there are deleted files.
-
-Status should update to be added later data before printing out.
-
 ### Prepare for integration with gdengine
 
 **MISC**
-I'm not sure if everything is properly done for. Needs some testing
-* [x] Add new subcommand revert
-- THis removes to be added, same with git revert
-* [x] "To be added" should check file sanity
-- Files should be cleared if files are not exsitent at the time
-* [x] Detect deleted files
-- I made a simple code to detect deleted files, but... it should do more than
-that.
-* [ ] Add error messages when necessary information was not given 
-- Currently nothing happens which is frustrating
+* [x] Make directory expanded
 * [ ] Currently nested gitignore or rifignore is not respected
-
-**Rif struct port from cli**
-* [x] make Rif struct that handls all operations
 
 **Refactor Rif operations **
 * [ ] Add
-- Add a directory
-    - Done, but needs testing if this is ok, since it was not possible before
 - Force option with stale files, with dot operation combined
-- Depend options that set references to given file with added file
-* [x] List(ls)
-
-**Improve formatting**
-* [x] Fresh tag is redundant, just remove it only show stale one 
 
 * [ ] Make a library
     * [ ] Ergonomic and useful exposed interface
