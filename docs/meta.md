@@ -2,6 +2,9 @@
 
 ### Prepare for integration with gdengine
 
+* [ ] Test operations
+    * [ ] Discard
+
 **MISC**
 * [x] Make directory expanded
 * [ ] Currently nested gitignore or rifignore is not respected

@@ -1,13 +1,13 @@
-## Rif, reference checking program
+## Rif, impact control program
 
-## Caution
+### Caution
 
 I completed all the features that was planned. However I haven't tested enough
 to ensure this program works as intended. I'm currently dog fooding this
 program and fixing known bugs. If you want to use stable version, then you may
 have to wait.
 
-## About rif
+### About rif
 
 Rif checks corelation between files and decide whether the files are stale or
 fresh. You can use this program or library(yet to come) when you need
@@ -19,7 +19,7 @@ independent editor thus not so versatile and somewhat clunky to use with other
 programs. On the other side, rif aims to make a file references checking easily
 attachable and cross platform by default.
 
-## Basic workflow
+### Some use cases
 
 Rif aims to help designers to track document changes. Especially when the
 documents are highly modular and interconnected. A generic usage is game design
@@ -45,35 +45,33 @@ manager's content should be updated or not. After designer applys proper
 modification, levelmanager's status gets updated. In this way, designer can
 minimize logical errors derived from unnoticed file relationships.
 
-## Usage
+### Usage
 
 **Basics**
 
 ```bash
 
 # Create new .rif file in current working directory
-rif new
-	-d --default : Create default .rifignore 
+rif init
 
 # Show current status of the rif file
 rif status 
-	-i --ignore : Ignore untracked files
+	-i --ignore  : Ignore untracked files
 	-v --verbose : Alsy display list output
 
 # Show item list of registered file
 # Optionaly give file to show only the file into the list
-rif list <FILE>(optional)
+rif ls <FILE>(optional)
 
 # Add file to rif
 # <FILE> can be any bash glob pattern e.g "."(whole project), "*"(whole files in current directory)
 rif add <FILE>
-	-s --set <REFS> : Add references to the <FILE> after addition. <REFS> should already exists in rif
-	-b --batch <REFS> : Same with set but enable batch setting to mutliple <FILE>. This explicitly enquire a user because unsetting is very trival process while setting references is instant.
+    -f --force   : Force add file even there was no change at all.
 
 # Remove file from rif
 # remove doesn't process directory input because it is very prone to unintended operation
 # you cannot revert a removal 
-rif remove <FILE>
+rif rm <FILE>
 
 # Set references to a file 
 # references should exist in rif
@@ -89,54 +87,40 @@ rif unset <FILE> <REFS>
 # this command discard the tracking and pretend as if nothing has changed
 rif discard <FILE>
 
-# Update file modification
-# update so that rif can use the modified status
-# for file corelation checking
-rif update <FILE>
-	-f --force : force update even if file is not modified
-	-c --check : auto check after update
+# Commit addition
+# And check the impacts of file changes
+rif commit <FILE>
 	-m --message <msg> : message to include in history
-
-# Check file corelation
-rif check
-	-u --update : update all modified files before checking
-
-# Checking file format sanity of ".rif"
-rif sanity
-	-f --fix : Fix invalid format automatically
-
 ```
 
-**General Usage**
+###General Usage
 
+**Binary**
 ```bash
-
 # Initiate rif project with default .rifginoe file
-rif new -d
+rif init -d
 
 # Add all files in current project directory
 rif add . 
 
 # Update a file with update message
-rif update <FILE> -m "This is important update"
+rif commit <FILE> -m "This is important update"
 
-# Check file corelation after automatcially updating all modified files
-rif check -u
-
-# Update a file's tracking status without actually modifying file + 
-# automatcially check rif files after update 
-rif update <FILE> -fc
+# Show status of rif directory
+rif status
 
 # Show whole rif tree without cutting anything
 rif list -d 0
-
 ```
 
-## Config
+**Library**
+
+Not yet
+
+### Config
 
 You can set several config options. I'm planning to add more config options. Config file is located inc "$PWD/.rif/config".
 
-- histoy capacity : Maximum lines of history. Default is 30
 - hook 
 	-trigger: Whether trigger hook process after check command
     -hook command : Process name to trigger
@@ -144,7 +128,17 @@ You can set several config options. I'm planning to add more config options. Con
 
 [Example](./docs/config_example)
 
-## Build method
+### Install method
+
+```bash
+# Simple binary file
+cargo install rif --features binary
+
+# With color prompt
+cargo install rif --features binary,color
+```
+
+### Build method
 
 Make sure rust langauge is installed. [Link](https://www.rust-lang.org/tools/install)
 ```
@@ -154,9 +148,3 @@ git clone https://github.com/simhyeon/rif
 # And build with cargo, compiled binary is located in target/release
 cd rif && cargo build --release
 ```
-
-## Demo
-
-[Raw rif demo](https://www.youtube.com/watch?v=3XhPTz6Rm5w)
-
-[Todos and Known Bugs](./docs/meta.md)
