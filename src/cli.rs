@@ -147,7 +147,7 @@ impl Cli {
 
     /// Check if `revert` subcommand was given and parse subcommand options
     fn subcommand_revert(matches: &clap::ArgMatches) -> Result<(), RifError>{
-        if let Some(sub_match) = matches.subcommand_matches("add") {
+        if let Some(sub_match) = matches.subcommand_matches("revert") {
             let files = sub_match
                 .values_of("FILE")
                 .map(|s| s.into_iter().map(|s| Path::new(s)).collect());
