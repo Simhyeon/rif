@@ -80,7 +80,7 @@ impl Cli {
             )
             (@subcommand commit =>
                 (about: "Commit addition of files")
-                (@arg message: -m --message +takes_value conflicts_with[discard] "Message to add in update")
+                (@arg message: -m --message +takes_value "Message to add in update")
             )
             (@subcommand discard =>
                 (about: "Discard file changes")
@@ -140,7 +140,7 @@ impl Cli {
 
     /// Check if `commit` subcommand was given and parse subcommand options
     fn subcommand_commit(matches: &clap::ArgMatches) -> Result<(), RifError>{
-        if let Some(sub_match) = matches.subcommand_matches("update") {
+        if let Some(sub_match) = matches.subcommand_matches("commit") {
             let message = sub_match.value_of("message");
 
             let rif_path = utils::get_rif_directory()?;
