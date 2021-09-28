@@ -53,7 +53,7 @@ impl Cli {
             )
             (@subcommand revert =>
                 (about: "Revert addition")
-                (@arg FILE: ... +required "File to revert")
+                (@arg FILE: ... "File to revert")
             )
             (@subcommand data =>
                 (about: "Print data as json format")
