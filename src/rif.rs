@@ -111,15 +111,12 @@ impl Rif {
     pub fn revert(&mut self, files: Option<&Vec<impl AsRef<Path>>>) -> Result<(), RifError> {
         if let Some(files) = files {
             for file in files {
-                let mut path = file.as_ref().to_owned();
-
-                // If given value is "." which means that input value has not been expanded.
-                // substitute with current working directory
-                if path.to_str().unwrap() == "." {
-                    path = std::env::current_dir()?;
-                }
-
+                let path = file.as_ref();
+                self.meta.remove(&path);
             } // for loop end
+        } else {
+            // No argument, revert everything
+            self.meta.clear();
         }
 
         self.meta.save_to_file(self.root_path.as_ref())?;
@@ -128,6 +125,12 @@ impl Rif {
 
     // This needs some refactoring
     pub fn commit(&mut self, message: Option<&str>) -> Result<(), RifError> {
+
+        // Literaly, commit needs to resolve all deleted files
+        if self.relation.get_deleted_files().len() != self.meta.to_be_deleted.len() {
+            return Err(RifError::CommitFail("Commit without deleted files are illegal. Rejected".to_owned()))
+        }
+
         // force updates
         for file in self.meta.to_be_forced.iter() {
             self.relation.update_filestamp_force(&file)?;
@@ -178,9 +181,13 @@ impl Rif {
             return Err(RifError::RenameFail(format!("Rename target: \"{}\" already exists", new_name.display())));
         }
 
-        // Rename file if it exsits
-        if source_name.exists() {
-            std::fs::rename(source_name, new_name)?;
+        // Rename file if it exsits and inside relation files
+        if source_name.exists() && self.relation.files.contains_key(source_name) {
+            if !new_name.exists() {
+                std::fs::rename(source_name, new_name)?;
+            } else {
+                return Err(RifError::RenameFail("New name already exists".to_owned()));
+            }
         }
 
         self.relation.rename_file(source_name, new_name)?;
@@ -215,7 +222,10 @@ impl Rif {
 
     // TODO 
     // Add staus line for currently added files which is stored in meta file
-    pub fn status(&self, ignore: bool, verbose: bool) -> Result<(), RifError> {
+    pub fn status(&mut self, ignore: bool, verbose: bool) -> Result<(), RifError> {
+        // Remove deleted files from to be added.
+        self.meta.remove_non_exsitent();
+
         let mut to_be_added_later = self.meta.to_be_added_later().peekable();
 
         if let Some(_) = to_be_added_later.peek() {
@@ -226,7 +236,7 @@ impl Rif {
             println!("");
         }
     
-        println!("# Modified files :");
+        println!("# Changed files :");
         self.relation.track_modified_files(self.meta.to_be_added_later())?;
 
         // Ignore untracked files
@@ -241,6 +251,10 @@ impl Rif {
             println!("\n# Current rif status:\n---");
             print!("{}", self.relation);
         }
+
+        // Save meta file
+        self.meta.save_to_file(self.root_path.as_ref())?;
+
         Ok(())
     }
 
@@ -293,6 +307,11 @@ impl Rif {
     }
 
     pub fn check(&mut self) -> Result<(), RifError> {
+
+        if self.relation.get_deleted_files().len() != 0 {
+            return Err(RifError::CheckerError("Check with deleted files are illegal. Rejected".to_owned()));
+        }
+
         self.check_exec()?;
         Ok(())
     }
@@ -386,14 +405,13 @@ impl Rif {
     }
 
     fn add_old_file(&mut self, file: &Path, force: bool) -> Result<(), RifError> {
-        if force {
-            self.meta.to_be_forced.insert(file.to_owned());
+        if file.exists() {
+            self.meta.queue_added(file, force);
         } else {
-            self.meta.to_be_added.insert(file.to_owned());
+            self.meta.queue_deleted(file);
         }
         Ok(())
     }
-
 
     // MISC methods end
 }
