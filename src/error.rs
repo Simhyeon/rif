@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum RifError {
     AddFail(String),
+    CommitFail(String),
     BincodeError(bincode::Error),
     CheckerError(String),
     CliError(String),
@@ -20,6 +21,7 @@ impl std::fmt::Display for RifError {
         match self {
             RifError::BincodeError(content) => write!(f, "{}", content),
             RifError::AddFail(content) => write!(f, "{}", content),
+            RifError::CommitFail(content) => write!(f, "{}", content),
             RifError::RenameFail(content) => write!(f, "{}", content),
             RifError::UpdateError(content) => write!(f, "{}", content),
             RifError::CheckerError(content) => write!(f, "{}", content),
