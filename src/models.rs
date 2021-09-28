@@ -14,10 +14,10 @@ pub enum FileStatus {
 
 impl std::fmt::Display for FileStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FileStatus::Stale => write!(f, "{}", utils::red("[Stale]")),
-            FileStatus::Fresh => write!(f, "{}", utils::blue("[Fresh]")),
-            FileStatus::Neutral => write!(f, "{}", utils::green("[Neutral]")),
+        if let FileStatus::Stale = self {
+            write!(f, "{}", utils::red("(s)"))
+        } else { // Print nothing
+            write!(f, "")
         }
     }
 }

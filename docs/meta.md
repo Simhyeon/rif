@@ -1,27 +1,43 @@
 ## TODO
 
+### Currently refactoring logic codebase
+
 ### Prepare for integration with gdengine
 
-* [ ] make Rif Struc that handls all operations
+**Bugs**
+- Add, commit workflow doees work. But add force doesn't update filestamp
 
-* [ ] Enable add to add directory
+**MISC**
+* [ ] Add new subcommand revert
+- THis removes to be added, same with git revert
+* [ ] "To be added" should check file sanity
+- Files should be cleared if files are not exsitent at the time
+* [ ] Add error messages when necessary information was not given 
+- Currently nothing happens which is frustrating
+* [ ] Currently nested gitignore or rifignore is not respected
+
+**Rif struct port from cli**
+* [x] make Rif struct that handls all operations
+
+**Refactor Rif operations **
+* [ ] Rename(mv)
+- Check operation logics
+* [ ] Add
+- Add a directory
+    - Done, but needs testing if this is ok, since it was not possible before
+- Force option with stale files, with dot operation combined
+- Depend options that set references to given file with added file
+* [ ] List(ls)
+- Show uncommited logs
+
+**Improve formatting**
 * [ ] Fresh tag is redundant, just remove it only show stale one 
-* [ ] Current workflow is not intuitive
-- rif add -> this is not git's add because it only add to structure while git's add add a new file and also update change
-- rif update
-- rif check
-- It is three steps compared to two steps in git
 
-- In my opinion, current add and update should be merged to same add function with --force option
-- And check is check
-* [ ] Add --depend option
-* [ ] Remove --set and --batch option for add subcommand for clarity
-- Argument as files that depend on added file
 * [ ] Make a library
     * [ ] Ergonomic and useful exposed interface
-* [ ] Push to crates.io
-* [ ] Add git-ignore also respected by config
-- This needs testing
+	* [ ] Make crates optional
+	- Possibly itertools and filetime too? because 40 deps for single function is absurd
+    * [ ] Push to crates.io
 
 ### Imminent
 
@@ -31,9 +47,9 @@ Branch: New subcommand
 Branch: Config
 * [ ] Create rif config
     * [x] History Capacity
-	* [x] Update Hook
+    * [x] Update Hook
     * [ ] Set --check flag for update command as default
-	* [ ] Add git integration
+    * [ ] Add git integration
 
 * [ ] Testing
 * [ ] Consider using sanity check "after" every cli operation
@@ -42,50 +58,50 @@ Branch: Config
 
 * [x] Enable creation of structure from .rif file  
 * [x] Enable multiple operations
-	* [x] Add file to rifList
-	* [x] Add references to a file
-	* [x] Delete file from rifList
-	* [x] Change status of a file manually
-	* [x] Update file's status according to references' corelation
-		* [x] Construct file corelation tree
-		Currently this looks good but not so sure 
-		* [x] Should check sanity on every opeartion.
-		* [x] Sanity check should also check file existences
-	* [x] Save updated rif list into file
-	* [x] Remove must delete all occurences not only just a singlefile
-		* [x] Refactor SingleFile structure to use set for references so that addition and subtraction are easy to use.
-	Because finding all file references and fixing is stupid I guess?
+    * [x] Add file to rifList
+    * [x] Add references to a file
+    * [x] Delete file from rifList
+    * [x] Change status of a file manually
+    * [x] Update file's status according to references' corelation
+        * [x] Construct file corelation tree
+        Currently this looks good but not so sure 
+        * [x] Should check sanity on every opeartion.
+        * [x] Sanity check should also check file existences
+    * [x] Save updated rif list into file
+    * [x] Remove must delete all occurences not only just a singlefile
+        * [x] Refactor SingleFile structure to use set for references so that addition and subtraction are easy to use.
+    Because finding all file references and fixing is stupid I guess?
 * [x] Enable tracking of files
-	* [x] Draft
-	* [x] Move tracker logics into rif_list models rather than separate file
-	* [x] Test 
+    * [x] Draft
+    * [x] Move tracker logics into rif_list models rather than separate file
+    * [x] Test 
 * [x] Enable clap integration for cli
-	* [x] Parse sub commands
+    * [x] Parse sub commands
      <!-- Add, Check, Discard, List, New, Remove, SanityCheck, Update, Set, Unset, Status -->
-	* [x] Add file: Add file into .rif file
-	* [x] Check: check file references with rif file in cwd.
-	* [x] Discard: Discard change and only timestamp without affecting references.
-	This technically update filestamp stored in rif_time
-	* [x] List: List .rif file contents into standard out descriptor
-	* [x] New: create new rif and rif_time files in current working directory(cwd).
-	* [x] Remove : remove file from .rif file
-	* [x] Sanity check: Whether file exists or not 
-	* [x] Update: Update file time check references
-	* [x] Set: Set file's references
-		* [x] Set can either be plus or minus
-	* [x] Status : Show tracking position
-	* [x] Test 
-	Tested -> Add, remove, set, unset, list, new, update, status, discard,
-	Fails -> Sanity: panics on self referencing
+    * [x] Add file: Add file into .rif file
+    * [x] Check: check file references with rif file in cwd.
+    * [x] Discard: Discard change and only timestamp without affecting references.
+    This technically update filestamp stored in rif_time
+    * [x] List: List .rif file contents into standard out descriptor
+    * [x] New: create new rif and rif_time files in current working directory(cwd).
+    * [x] Remove : remove file from .rif file
+    * [x] Sanity check: Whether file exists or not 
+    * [x] Update: Update file time check references
+    * [x] Set: Set file's references
+        * [x] Set can either be plus or minus
+    * [x] Status : Show tracking position
+    * [x] Test 
+    Tested -> Add, remove, set, unset, list, new, update, status, discard,
+    Fails -> Sanity: panics on self referencing
 * [x] Improve functionality
-	* [x] Sanity check with auto fix option
-	* [x] Check should yield changed files list
-	* [x] Make force update method which doesn't change file contents but only update filestamp 
-	* [x] Check with auto update all files
-	* [x] Refactor status and list operation
-		* [x] Status to show tracked files and their statuses
-		* [x] Show which file has affected the status change
-		* [x] Convert list to all information saved in rif in json
+    * [x] Sanity check with auto fix option
+    * [x] Check should yield changed files list
+    * [x] Make force update method which doesn't change file contents but only update filestamp 
+    * [x] Check with auto update all files
+    * [x] Refactor status and list operation
+        * [x] Status to show tracked files and their statuses
+        * [x] Show which file has affected the status change
+        * [x] Convert list to all information saved in rif in json
 
 Branch: better_status
 * [x] Status to show untracked files list
@@ -99,16 +115,16 @@ Branch: Ergonomics
 
 Branch: Error handling
 * [x] Improve error handling ergonomics
-	* [x] Make error print logging pretty to read 
-	* [x] Make error result more distinguishable
-	Make riferror more diverse and meaningful
+    * [x] Make error print logging pretty to read 
+    * [x] Make error result more distinguishable
+    Make riferror more diverse and meaningful
 
 Branch : File structure rearrangement
 * [x] Files are getting bigger segregate them with multiple modules
 
 Branch: directory
 * [x] Make subcommand to get directory as argument
-	* [x] Recursive option with directory
+    * [x] Recursive option with directory
 * [x] Make rifignore can ignore directory
 
 Branch: Path sanity
@@ -118,8 +134,8 @@ Currently all path operations assume that path is relative to rif file, which is
 
 Branch: documentation
 * [x] Make good documentation in codes and rearrange for better reading
-	* [x] Sort imports
-	* [x] Add rust doc comments
+    * [x] Sort imports
+    * [x] Add rust doc comments
 
 * [x] Remove list subcommand's extra new lines
 * [x] Add depth option for list subcommand
@@ -132,11 +148,11 @@ This extension of functionality such as history, update hook or something like w
 
 Branch: New features
 * [x] Add new features
-	* [x] Add update message, 
-	* [x] Add update hook so that user can configure automatic behaviour on update.
+    * [x] Add update message, 
+    * [x] Add update hook so that user can configure automatic behaviour on update.
 
 Branch: Json formatting
-	* [x] Export rif project into single json format
+    * [x] Export rif project into single json format
 
 * [x] Who though history capacity is a good idea? Remove it already
 * [x] Make commands much more ergonomic, in terms of familiarity
@@ -148,6 +164,7 @@ Branch: Json formatting
     * [x] Config and info file
 
 * [x] Rif command inside nested directory
+* [x] Add git-ignore also respected by config
 
 ### Later
 
