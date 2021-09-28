@@ -64,6 +64,12 @@ impl History {
         Ok(())
     }
 
+    /// Removea file from history
+    pub fn remove_file(&mut self, file: &Path) -> Result<(), RifError> {
+        self.hist_map.remove(file);
+        Ok(())
+    }
+
     /// Print all histroy of given file
     ///
     /// # Args
