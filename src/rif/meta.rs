@@ -44,6 +44,8 @@ impl<'a> Meta {
         if self.to_be_added.contains(file) || self.to_be_forced.contains(file) {
             self.to_be_forced.remove(file);
             self.to_be_added.remove(file);
+            self.to_be_registerd.remove(file);
+            self.to_be_deleted.remove(file);
         }
     }
 
