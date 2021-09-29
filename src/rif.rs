@@ -456,15 +456,17 @@ impl Rif {
         Ok(())
     }
     
+    /// Add directory
     fn add_directory(&mut self, dir: &Path) -> Result<(), RifError> {
         let tracked = self.relation.files.keys().cloned().collect::<Vec<PathBuf>>();
         let modified = self.relation.get_modified_files()?.clone();
+        let mut deleted = self.relation.get_deleted_files().clone();
+        let mut to_be_deleted = HashSet::new();
         let mut to_be_added = HashSet::new();
         let mut to_be_registerd = HashSet::new();
         // Closure to recursively get inside directory and add files
         let mut closure = |entry_path : PathBuf| -> Result<LoopBranch, RifError> {
             let striped_path = utils::relativize_path(&entry_path)?;
-
             // Early return if file or directory is in black_list
             // Need to check the black_list once more because closure checks nested
             // directory that is not checked in outer for loop
@@ -479,6 +481,17 @@ impl Rif {
 
             // If directory go inside and don't add the directory
             if striped_path.is_dir() {
+                // Only retain deleted files that are not specified in directory
+                // or say, paths that don't start with entry path
+                deleted.retain(|path| {
+                    let is_inside = path.starts_with(&entry_path);
+                    // Add to to_be_deleted
+                    if is_inside {
+                        to_be_deleted.insert(path.to_owned());
+                    }
+                    // Only retain files that is not inside the directory
+                    !is_inside
+                });
                 return Ok(LoopBranch::Continue);
             } 
 
@@ -496,6 +509,7 @@ impl Rif {
 
         self.meta.to_be_registerd.extend(to_be_registerd);
         self.meta.to_be_added.extend(to_be_added);
+        self.meta.to_be_deleted.extend(to_be_deleted);
 
         Ok(())
     }

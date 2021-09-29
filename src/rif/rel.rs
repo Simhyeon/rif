@@ -615,12 +615,12 @@ impl Relations {
         Ok(())
     }
 
-    pub fn get_deleted_files(&self) -> HashSet<&Path> {
+    pub fn get_deleted_files(&self) -> HashSet<PathBuf> {
         let mut set = HashSet::new();
         for path in self.files.keys() {
             // If file doesn't exist, print as delted
             if !path.exists() {
-                set.insert(path.as_path());
+                set.insert(path.to_owned());
             }
         }
 
@@ -634,6 +634,11 @@ impl Relations {
         let mut modified: Vec<PathBuf> = vec![];
 
         for (path, file) in self.files.iter() {
+            // File is deleted
+            if !path.exists() {
+                continue;
+            }
+
             let system_time = utils::get_file_unix_time(path)?;
             if file.last_modified < system_time {
                 modified.push(path.clone());
