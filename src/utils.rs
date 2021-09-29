@@ -289,17 +289,16 @@ pub fn yellow(string : &str) -> Box<dyn std::fmt::Display> {
     Box::new(string.to_owned())
 }
 
-pub fn cmd(arg_vec: Vec<&str>) -> Result<(), RifError> {
+pub fn cmd(cmd: &str, args: Vec<String>) -> Result<(), RifError> {
     let output = if cfg!(target_os = "windows") {
         Command::new("cmd")
             .arg("/C")
-            .args(arg_vec)
+            .args(args)
             .output()
             .expect("failed to execute process")
     } else {
-        let sys_args = if arg_vec.len() > 1 { &arg_vec[1..] } else { &[] };
-        Command::new(&arg_vec[0])
-            .args(sys_args)
+        Command::new(cmd)
+            .args(args)
             .output()
             .expect("failed to execute process")
     };
