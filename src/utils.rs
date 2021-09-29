@@ -4,6 +4,7 @@ use std::fs::File;
 use std::fs::metadata;
 use std::collections::HashSet;
 use std::path::{PathBuf, Path};
+use std::process::Command;
 
 #[cfg(feature = "color")]
 use colored::*;
@@ -286,4 +287,29 @@ pub fn yellow(string : &str) -> Box<dyn std::fmt::Display> {
         return Box::new(string.yellow().to_owned());
     }
     Box::new(string.to_owned())
+}
+
+pub fn cmd(arg_vec: Vec<&str>) -> Result<(), RifError> {
+    let output = if cfg!(target_os = "windows") {
+        Command::new("cmd")
+            .arg("/C")
+            .args(arg_vec)
+            .output()
+            .expect("failed to execute process")
+    } else {
+        let sys_args = if arg_vec.len() > 1 { &arg_vec[1..] } else { &[] };
+        Command::new(&arg_vec[0])
+            .args(sys_args)
+            .output()
+            .expect("failed to execute process")
+    };
+
+    // This can be not valid, since it is lossy, but hardly 
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    if stdout.len() != 0 { println!("{}",stdout); }
+    if stderr.len() != 0 { eprintln!("{}",stderr); }
+
+    Ok(())
 }
