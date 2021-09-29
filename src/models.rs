@@ -46,3 +46,24 @@ pub enum LoopBranch {
     Exit,
     Continue,
 }
+
+#[derive(Debug)]
+pub enum ListType {
+    All,
+    Stale,
+    None,
+}
+
+impl ListType {
+    pub fn from(raw : &str) -> Self {
+        match raw.to_lowercase().as_str() {
+            "all" => {
+                Self::All
+            }
+            "stale" => {
+                Self::Stale
+            }
+            _ => Self::None,
+        }
+    }
+}
