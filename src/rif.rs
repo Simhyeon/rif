@@ -16,6 +16,7 @@ use crate::RifError;
 use std::path::{Path, PathBuf};
 use crate::consts::*;
 
+/// Rif struct stores all iformation necessary for rif operations
 pub struct Rif {
     config: Config,
     history: History,
@@ -26,6 +27,7 @@ pub struct Rif {
 }
 
 impl Rif {
+    /// Create new rif struct
     pub fn new(path: Option<impl AsRef<Path>>) -> Result<Self, RifError> {
         let config = Config::read_from_file(path.as_ref())?;
         let black_list = utils::get_black_list(config.git_ignore)?;
@@ -39,8 +41,12 @@ impl Rif {
         })
     }
 
+    // ==========
     // External methods start
 
+    /// Initiate given directory
+    ///
+    /// If directory is not supplied, initiates current working directory
     pub fn init(path: Option<impl AsRef<Path>>,create_rif_ignore: bool) -> Result<(), RifError> {
         let path = if let Some(path) = path {
             path.as_ref().to_owned()
@@ -68,16 +74,17 @@ impl Rif {
         new_meta.save_to_file(Some(&path))?;
         println!("Initiated a rif directory \"{}\"", std::env::current_dir()?.display());
 
-        // Also crate rifignore file
+        // Also create rifignore file
         if create_rif_ignore {
             std::fs::write(".rifignore",".git")?;
         }
         Ok(())
     }
 
-    // TODO
-    // Force option is especially useful with stale option
-    // e.g. rif add -fs -> This will add all stale files with force options
+    /// Add new file 
+    ///
+    /// Files that modified, newly created, deleted files can be added but non modiifed files can
+    /// alos be added with force option
     pub fn add(&mut self, files: &Vec<impl AsRef<Path>>, force: bool) -> Result<(), RifError> {
         for file in files {
             let mut path = file.as_ref().to_owned();
@@ -118,6 +125,9 @@ impl Rif {
         Ok(())
     }
 
+    /// Revert added files
+    ///
+    /// No files arugment revert all added files
     pub fn revert(&mut self, files: Option<&Vec<impl AsRef<Path>>>) -> Result<(), RifError> {
         if let Some(files) = files {
             for file in files {
@@ -134,7 +144,9 @@ impl Rif {
         Ok(())
     }
 
-    // This needs some refactoring
+    /// Commit addition to rif struct and check impact
+    ///
+    /// Message is saved inside history file
     pub fn commit(&mut self, message: Option<&str>) -> Result<(), RifError> {
 
         // Literaly, commit needs to resolve all deleted files
@@ -184,6 +196,9 @@ impl Rif {
         Ok(())
     }
     
+    /// Discard file change and updated filestamp
+    ///
+    /// This cannot be reverted so multiple files are not supported
     pub fn discard(&mut self, file: impl AsRef<Path>) -> Result<(), RifError> {
         self.relation.discard_change(file.as_ref())?;
         self.relation.save_to_file(self.root_path.as_ref())?;
@@ -194,6 +209,9 @@ impl Rif {
     // Needs serious consideration
     // Whether new_name exists in real directory
     // Whether sany check is activated so that insane rename should be not executed
+    /// Rename rif file 
+    ///
+    /// If file exist, change the file name in filesystem
     pub fn rename(&mut self, source_name: &str, new_name: &str) -> Result<(), RifError> {
         let source_name = Path::new(source_name);
         let new_name = Path::new(new_name);
@@ -215,6 +233,7 @@ impl Rif {
         Ok(())
     }
 
+    /// Remove file from rif
     pub fn remove(&mut self, files: &Vec<impl AsRef<Path>>) -> Result<(), RifError> {
         for file in files {
             self.remove_file(file.as_ref())?;
@@ -224,6 +243,7 @@ impl Rif {
         Ok(())
     }
 
+    /// Set reference of file
     pub fn set(&mut self, file: &Path, refs : &Vec<impl AsRef<Path>>) -> Result<(), RifError> {
         let refs: HashSet<PathBuf> = refs.iter().map(|a| a.as_ref().to_owned()).collect();
 
@@ -232,6 +252,7 @@ impl Rif {
         Ok(())
     }
 
+    /// Unset reference of file
     pub fn unset(&mut self, file: &Path, refs : &Vec<impl AsRef<Path>>) -> Result<(), RifError> {
         let refs: HashSet<PathBuf> = refs.iter().map(|a| a.as_ref().to_owned()).collect();
 
@@ -240,8 +261,7 @@ impl Rif {
         Ok(())
     }
 
-    // TODO 
-    // Add staus line for currently added files which is stored in meta file
+    /// Show current status of rif project
     pub fn status(&mut self, ignore: bool, verbose: bool) -> Result<(), RifError> {
         // Remove deleted files from to be added.
         self.meta.remove_non_exsitent();
@@ -291,6 +311,7 @@ impl Rif {
         Ok(())
     }
 
+    /// Show file informations of rif project
     pub fn list(&self, file : Option<impl AsRef<Path>>, list_type: ListType, depth: Option<usize>) -> Result<(), RifError> {
         if let Some(file) = file {
             // Print relation tree
@@ -314,6 +335,7 @@ impl Rif {
         Ok(())
     }
 
+    /// Show data of rif project
     pub fn data(&self, data_type: Option<&str>, compact: bool) -> Result<(), RifError> {
         if let Some(data_type) = data_type {
             match data_type {
@@ -336,6 +358,7 @@ impl Rif {
         Ok(())
     }
 
+    /// Show files that depend on given file
     pub fn depend(&self, file: &Path)  -> Result<(), RifError> {
         let dependes = self.relation.find_depends(file)?;
         println!("Files that depends on \"{}\"", file.display());
@@ -346,8 +369,8 @@ impl Rif {
         Ok(())
     }
 
+    /// Check file references
     pub fn check(&mut self) -> Result<(), RifError> {
-
         if self.relation.get_deleted_files().len() != 0 {
             return Err(RifError::CheckerError("Check with deleted files are illegal. Rejected".to_owned()));
         }
@@ -356,6 +379,7 @@ impl Rif {
         Ok(())
     }
 
+    /// Check sanity of rif proeject
     pub fn sanity(&mut self, fix: bool) -> Result<(), RifError> {
         // NOTE ::: You don't have to manually call sanity check
         // Because read operation always check file sanity after reading a file
@@ -408,17 +432,20 @@ impl Rif {
         false
     }
 
+    /// Add new file to rif 
     fn add_new_file(&mut self, file: &Path) -> Result<(), RifError> {
         self.meta.to_be_registerd.insert(file.to_owned());
         Ok(())
     }
 
+    /// Remove new file to rif 
     fn remove_file(&mut self, file: &Path) -> Result<(), RifError> {
         self.relation.remove_file(file)?;
         self.history.remove_file(file)?;
         Ok(())
     }
 
+    /// Register a new file
     fn register_new_file(&mut self, file: &Path, message: Option<&str>) -> Result<(), RifError> {
         // Closure to recursively get inside directory and add files
         let mut closure = |entry_path : PathBuf| -> Result<LoopBranch, RifError> {
@@ -514,6 +541,7 @@ impl Rif {
         Ok(())
     }
 
+    /// Add old file
     fn add_old_file(&mut self, file: &Path, force: bool) -> Result<(), RifError> {
         if file.exists() {
             self.meta.queue_added(file, force);

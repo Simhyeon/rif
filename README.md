@@ -45,60 +45,12 @@ manager's content should be updated or not. After designer applys proper
 modification, levelmanager's status gets updated. In this way, designer can
 minimize logical errors derived from unnoticed file relationships.
 
-### Usage
-
-**Basics**
-
-```bash
-
-# Create new .rif file in current working directory
-rif init
-
-# Show current status of the rif file
-rif status 
-	-i --ignore  : Ignore untracked files
-	-v --verbose : Alsy display list output
-
-# Show item list of registered file
-# Optionaly give file to show only the file into the list
-rif ls <FILE>(optional)
-
-# Add file to rif
-# <FILE> can be any bash glob pattern e.g "."(whole project), "*"(whole files in current directory)
-rif add <FILE>
-    -f --force   : Force add file even there was no change at all.
-
-# Remove file from rif
-# remove doesn't process directory input because it is very prone to unintended operation
-# you cannot revert a removal 
-rif rm <FILE>
-
-# Set references to a file 
-# references should exist in rif
-rif set <FILE> <REFS>
-
-# Unset references to a file 
-# references do not have to be valid path
-# becuase unset operation is technically "set -"
-rif unset <FILE> <REFS>
-
-# Discard file modification
-# modification of registered files are always tracked
-# this command discard the tracking and pretend as if nothing has changed
-rif discard <FILE>
-
-# Commit addition
-# And check the impacts of file changes
-rif commit <FILE>
-	-m --message <msg> : message to include in history
-```
-
-###General Usage
+### General Usage
 
 **Binary**
 ```bash
 # Initiate rif project with default .rifginoe file
-rif init -d
+rif init
 
 # Add all files in current project directory
 rif add . 
@@ -109,11 +61,27 @@ rif commit <FILE> -m "This is important update"
 # Show status of rif directory
 rif status
 
-# Show whole rif tree without cutting anything
-rif list -d 0
+# Show whole rif tree 
+rif ls
 ```
 
 **Library**
+
+```toml
+rif = "0.1.0"
+```
+
+```rust
+use rif::{Rif, LisType};
+
+// Every operation saves file to .rif which is created with new method
+let rif = Rif::new();
+let wd = Some(path::new("dir")); // Or use "None" for cwd
+rif.new(wd);
+rif.add(Path::new("file_to_add.txt", false));
+rif.commit(None);
+rif.list(None,LisType::All,None);
+```
 
 Not yet
 

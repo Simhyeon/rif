@@ -2,37 +2,14 @@
 
 ### Prepare for integration with gdengine
 
-* [ ] Test operations
-    * [ ] Discard
-
-**MISC**
-* [x] Make directory expanded
-* [ ] Currently nested gitignore or rifignore is not respected
-
-**Refactor Rif operations **
-* [ ] Add
-- Force option with stale files, with dot operation combined
+* [ ] Debug
+* [ ] Edit readme
 
 * [ ] Make a library
     * [ ] Ergonomic and useful exposed interface
 	* [ ] Make crates optional
 	- Possibly itertools and filetime too? because 40 deps for single function is absurd
     * [ ] Push to crates.io
-
-### Imminent
-
-Branch: New subcommand
-* [x] Depend subcommand -> Show what files depends on target file
-
-Branch: Config
-* [ ] Create rif config
-    * [x] History Capacity
-    * [x] Update Hook
-    * [ ] Set --check flag for update command as default
-    * [ ] Add git integration
-
-* [ ] Testing
-* [ ] Consider using sanity check "after" every cli operation
 
 ### Done
 
@@ -146,10 +123,13 @@ Branch: Json formatting
 * [x] Rif command inside nested directory
 * [x] Add git-ignore also respected by config
 
-### Later
+**Refactor Rif operations **
+* [-] Add
+    * [-] Force option with stale files, with dot operation combined 
 
-* [ ] Export rif as library
-* [ ] Create vs code extension
+* [-] Nested rifignore
+- I don't think it is that worthy though
+
 
 ### Known Issues
 

@@ -11,3 +11,4 @@ mod error;
 
 pub use crate::error::RifError;
 pub use crate::rif::*;
+pub use models::ListType;
