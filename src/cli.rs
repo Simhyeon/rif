@@ -2,6 +2,7 @@ use std::path::Path;
 use clap::clap_app;
 use crate::RifError;
 use crate::Rif;
+use crate::models::ListType;
 use crate::utils;
 
 /// Struct to parse command line arguments and execute proper operations
@@ -112,6 +113,7 @@ impl Cli {
                 (about: "Diplay all files from rif file")
                 (@arg FILE: "File to list")
                 (@arg depth: -d --depth +takes_value "Maximum depth for display tree(unsigned integer). 0 means print a whole tree")
+                (@arg r#type: -t --r#type +takes_value "List Type, default is all (all|stale)")
             )
         ).get_matches()
     }
@@ -268,6 +270,7 @@ impl Cli {
     fn subcommand_list(matches: &clap::ArgMatches) -> Result<(), RifError>{
         if let Some(sub_match) = matches.subcommand_matches("ls") {
             let file = sub_match.value_of("FILE");
+            let r#type = ListType::from(sub_match.value_of("r#type").unwrap_or("all"));
             let depth = sub_match
                 .value_of("depth")
                 .map(|num| {
@@ -276,7 +279,7 @@ impl Cli {
 
             let rif_path = utils::get_rif_directory()?;
             let rif = Rif::new(Some(&rif_path))?;
-            rif.list(file,depth)?;
+            rif.list(file,r#type,depth)?;
         } 
         Ok(())
     }
