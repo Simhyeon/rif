@@ -5,7 +5,7 @@ pub mod hook;
 pub mod meta;
 
 use crate::checker::Checker;
-use crate::models::LoopBranch;
+use crate::models::{LoopBranch, ListType};
 use crate::utils;
 use std::collections::HashSet;
 use config::Config;
@@ -291,7 +291,7 @@ impl Rif {
         Ok(())
     }
 
-    pub fn list(&self, file : Option<impl AsRef<Path>>, depth: Option<usize>) -> Result<(), RifError> {
+    pub fn list(&self, file : Option<impl AsRef<Path>>, list_type: ListType, depth: Option<usize>) -> Result<(), RifError> {
         if let Some(file) = file {
             // Print relation tree
             self.relation.display_file_depth(file.as_ref(), 0)?;
@@ -299,10 +299,17 @@ impl Rif {
             // Also print update 
             println!("\n# History : ");
             self.history.print_history(file.as_ref())?;
-        } else if let Some(depth) = depth {
-            self.relation.display_depth(depth)?;
-        } else {
-            println!("{}", self.relation);
+        }  else { // No file was given
+            match list_type {
+                ListType::All => {
+                    self.relation.display_depth(depth.unwrap_or(0))?;
+                }
+                ListType::Stale => {
+                    self.relation.display_stale_files(depth.unwrap_or(0))?;
+                }
+                // Updated is not yet added
+                _ => (),
+            }
         }
         Ok(())
     }
