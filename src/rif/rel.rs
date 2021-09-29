@@ -594,7 +594,7 @@ impl Relations {
             println!("    All files are up to date.");
         } else {
             if deleted_log.len() != 0 {println!("{}", deleted_log);}
-            println!("{}", modified_log);
+            if modified_log.len() != 0 {println!("{}", modified_log);}
         }
 
         Ok(())
