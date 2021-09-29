@@ -29,6 +29,7 @@ impl std::fmt::Display for Relations {
     }
 }
 
+
 impl Relations {
     pub fn new() -> Self {
         Self {  
@@ -68,6 +69,16 @@ impl Relations {
         file_output
     }
 
+    /// Only display stale files
+    pub fn display_stale_files(&self, depth: usize) -> Result<(), RifError> {
+        for path in self.files.keys().sorted() {
+            if let FileStatus::Stale = self.files.get(path).unwrap().status {
+                self.display_file_depth(path, depth)?;
+            }
+        }
+        Ok(())
+    }
+
     /// Print a single file's relation 
     ///
     /// # Args
@@ -92,6 +103,10 @@ impl Relations {
     ///
     /// * `depth` - Desired depth value to display
     pub fn display_depth(&self, depth: usize) -> Result<(), RifError> {
+        if depth == 0 {
+            println!("{}", self);
+            return Ok(());
+        } 
         for path in self.files.keys().cloned().sorted() {
             // This should always work theoritically
             let single_file = self.files.get(&path).unwrap();
@@ -122,7 +137,7 @@ impl Relations {
             print!("- > {} {}", ref_item_key.display(), ref_item.status);
             if let FileStatus::Stale = parent_file.status {
                 if current_time < ref_item.timestamp {
-                    print!(" {}", utils::yellow("Updated"));
+                    print!("{}", utils::yellow("(u)"));
                 }
             }
             print!("\n");
