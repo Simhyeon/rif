@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 use std::path::PathBuf;
-use std::process::Command;
+use crate::utils;
 use serde::{Serialize,Deserialize};
 
 use crate::models::FileStatus;
@@ -62,10 +62,7 @@ impl Hook {
         }
 
         if let Some(cmd) = &self.command {
-            let output = Command::new(cmd).args(&filtered_args[..]).output()?;
-            io::stdout().write_all(&output.stdout).unwrap();
-            io::stderr().write_all(&output.stderr).unwrap();
-
+            utils::cmd(cmd,filtered_args)?;
             Ok(())
         } else {
             Err(RifError::ConfigError(String::from("Hook trigger is true but it's command is null")))
