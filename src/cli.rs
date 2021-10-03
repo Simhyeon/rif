@@ -43,7 +43,7 @@ impl Cli {
     /// Argument matcher consists of clap macros
     fn args_builder() -> clap::ArgMatches {
         clap_app!(Rif =>
-            (version: "0.2.0")
+            (version: "0.2.1")
             (author: "Simon Creek <simoncreek@tutanota.com>")
             (about: "Rif is a program to track impact of file changes")
             (@setting ArgRequiredElseHelp)
