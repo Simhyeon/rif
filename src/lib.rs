@@ -2,9 +2,9 @@
 mod cli;
 #[cfg(feature = "clap")]
 pub use cli::Cli;
-pub mod utils;
+pub(crate) mod utils;
 pub(crate) mod rif;
-pub mod models;
+pub(crate) mod models;
 pub(crate) mod checker;
 pub(crate) mod consts;
 mod error;

@@ -43,7 +43,7 @@ pub fn get_current_unix_time() -> NaiveDateTime {
 ///
 /// * `path` - File path to start directory walking
 /// * `f` - Function refernce to be triggered on every path entry
-pub fn walk_directory_recursive(path: &Path, f: &mut dyn FnMut(PathBuf) -> Result<LoopBranch, RifError>) -> Result<(), RifError> {
+pub(crate) fn walk_directory_recursive(path: &Path, f: &mut dyn FnMut(PathBuf) -> Result<LoopBranch, RifError>) -> Result<(), RifError> {
     for entry in std::fs::read_dir(path)? {
         let entry_path: PathBuf = strip_path(&entry?.path(), None)?;
         let md = metadata(entry_path.clone()).unwrap();

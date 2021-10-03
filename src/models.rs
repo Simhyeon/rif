@@ -6,7 +6,7 @@ use crate::utils;
 /// Fresh means a file is up to date
 /// while stale means referencing file has been updated and the file has not.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Copy)]
-pub enum FileStatus {
+pub(crate) enum FileStatus {
     Fresh,
     Neutral, // Reserved for future usages. Might be deleted after all.
     Stale,
@@ -25,7 +25,7 @@ impl std::fmt::Display for FileStatus {
 /// Sanity type to branch sanity check.
 ///
 /// Direct only check self referencing while indirect also checks infinite loop
-pub enum SanityType {
+pub(crate) enum SanityType {
     Direct,
     Indirect
 }
@@ -34,7 +34,7 @@ pub enum SanityType {
 ///
 /// This enumerator is used for sanity checking and determines whether rif
 /// sanity is assured or not.
-pub enum RefStatus {
+pub(crate) enum RefStatus {
     Invalid,
     Valid
 }
@@ -42,11 +42,12 @@ pub enum RefStatus {
 /// Loop diversion enumerator
 ///
 /// Used with walk_directory_recursive method, so that given function can decide when to stop recursion.
-pub enum LoopBranch {
+pub(crate) enum LoopBranch {
     Exit,
     Continue,
 }
 
+// This is exposed to user
 #[derive(Debug)]
 pub enum ListType {
     All,
